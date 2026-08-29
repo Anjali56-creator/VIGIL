@@ -233,10 +233,14 @@ class DashboardMetrics(BaseModel):
     total_transactions: int
     analyzed: int
     suspicious: int
-    high_risk: int
-    critical: int
+    high_risk: int          # transactions in the HIGH band
+    critical: int           # transactions in the CRITICAL band
+    open_cases: int
+    high_risk_cases: int
+    critical_cases: int
     review_required: int
     detection_rate: float | None
+    avg_investigation_time_s: float | None
     median_time_to_decision_s: float | None
     risk_distribution: dict[str, int]
 

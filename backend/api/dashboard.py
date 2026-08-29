@@ -6,7 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..models import Case, Decision, RiskAssessment, Transaction
+from ..models import AgentRun, Case, RiskAssessment, Transaction
 from ..schemas import DashboardMetrics
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
@@ -22,9 +22,23 @@ def metrics(db: Session = Depends(get_db)) -> DashboardMetrics:
         dist[band] = n
     suspicious = dist["MEDIUM"] + dist["HIGH"] + dist["CRITICAL"]
 
-    review_required = db.scalar(
-        select(func.count()).select_from(Case).where(Case.status == "REVIEW_REQUIRED")
+    def _case_count(**w):
+        stmt = select(func.count()).select_from(Case)
+        for k, v in w.items():
+            stmt = stmt.where(getattr(Case, k) == v)
+        return db.scalar(stmt) or 0
+
+    open_cases = db.scalar(
+        select(func.count()).select_from(Case).where(
+            Case.status.notin_(("APPROVED", "BLOCKED", "RESOLVED"))
+        )
     ) or 0
+    review_required = _case_count(status="REVIEW_REQUIRED")
+    high_risk_cases = _case_count(band="HIGH")
+    critical_cases = _case_count(band="CRITICAL")
+
+    run_times = [r for r in db.scalars(select(AgentRun.latency_ms)) if r]
+    avg_investigation_s = round(sum(run_times) / len(run_times) / 1000, 1) if run_times else None
 
     # Detection rate: of ground-truth attack transactions, how many scored HIGH/CRITICAL.
     attacks = list(db.scalars(select(Transaction).where(Transaction.is_attack.is_(True))))
@@ -51,8 +65,12 @@ def metrics(db: Session = Depends(get_db)) -> DashboardMetrics:
         suspicious=suspicious,
         high_risk=dist["HIGH"],
         critical=dist["CRITICAL"],
+        open_cases=open_cases,
+        high_risk_cases=high_risk_cases,
+        critical_cases=critical_cases,
         review_required=review_required,
         detection_rate=detection_rate,
+        avg_investigation_time_s=avg_investigation_s,
         median_time_to_decision_s=median_ttd,
         risk_distribution=dist,
     )

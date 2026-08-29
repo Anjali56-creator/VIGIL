@@ -3,453 +3,570 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Vigil - AI Risk Operations Center</title>
+  <title>Vigil — AI Risk Operations Center</title>
   <script src="https://cdn.tailwindcss.com/3.4.14"></script>
   <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: { extend: { colors: {
-        bg: '#0b0f17', panel: '#111826', panel2: '#0e1522', line: '#1f2a3a',
-        ink: '#e6edf6', acc: '#4f9cf9',
-        low: '#3fb27f', medium: '#e0b743', high: '#f0912d', critical: '#ef4444'
-      }}}
-    };
+    tailwind.config = { darkMode: 'class', theme: { extend: { colors: {
+      bg:'#0a0e16', panel:'#111a28', panel2:'#0d1521', line:'#1e2a3c', ink:'#e8eef7', acc:'#4f9cf9',
+      low:'#35c48b', medium:'#e6b53c', high:'#f0912d', critical:'#f0524b'
+    }}}};
   </script>
   <style>
     :root{color-scheme:dark}
-    body{background:#0b0f17;color:#e6edf6;font:14px/1.5 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-    .band-LOW{color:#3fb27f} .bg-LOW{background:#3fb27f}
-    .band-MEDIUM{color:#e0b743} .bg-MEDIUM{background:#e0b743}
-    .band-HIGH{color:#f0912d} .bg-HIGH{background:#f0912d}
-    .band-CRITICAL{color:#ef4444} .bg-CRITICAL{background:#ef4444}
-    .chip{border:1px solid var(--c,#1f2a3a);border-radius:999px;padding:2px 8px;font-size:11px;letter-spacing:.04em}
-    .panel{background:#111826;border:1px solid #1f2a3a;border-radius:12px}
-    .btn{border:1px solid #2a3a52;border-radius:8px;padding:6px 12px;font-size:13px;background:#16202f}
-    .btn:hover{background:#1c2940}
+    *{box-sizing:border-box}
+    body{background:#0a0e16;color:#e8eef7;font:14px/1.55 ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;margin:0}
+    [x-cloak]{display:none!important}
+    .band-LOW{color:#35c48b}      .bg-LOW{background:#35c48b}      .bd-LOW{border-color:#35c48b}
+    .band-MEDIUM{color:#e6b53c}   .bg-MEDIUM{background:#e6b53c}   .bd-MEDIUM{border-color:#e6b53c}
+    .band-HIGH{color:#f0912d}     .bg-HIGH{background:#f0912d}     .bd-HIGH{border-color:#f0912d}
+    .band-CRITICAL{color:#f0524b} .bg-CRITICAL{background:#f0524b} .bd-CRITICAL{border-color:#f0524b}
+    .panel{background:#111a28;border:1px solid #1e2a3c;border-radius:14px}
+    .lbl{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:#7c90a8}
+    .chip{display:inline-flex;align-items:center;gap:5px;border:1px solid #26344a;border-radius:999px;padding:2px 9px;font-size:11px;letter-spacing:.03em;white-space:nowrap}
+    .btn{border:1px solid #2b3a52;border-radius:9px;padding:7px 13px;font-size:13px;background:#16212f;color:#e8eef7;cursor:pointer;transition:background .12s}
+    .btn:hover:not(:disabled){background:#1d2a3d}
     .btn-primary{background:#1d4ed8;border-color:#1d4ed8;color:#fff}
-    .btn-primary:hover{background:#2563eb}
-    .btn:disabled{opacity:.45;cursor:not-allowed}
+    .btn-primary:hover:not(:disabled){background:#2563eb}
+    .btn-danger{background:#7f1d1d;border-color:#991b1b;color:#fff}
+    .btn-danger:hover:not(:disabled){background:#991b1b}
+    .btn:disabled{opacity:.4;cursor:not-allowed}
+    .btn-sel{outline:2px solid #4f9cf9;outline-offset:1px}
     table{width:100%;border-collapse:collapse}
-    th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #1a2434}
-    th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#7f93a8}
-    tr[role=button]:hover{background:#0e1522;cursor:pointer}
+    th,td{text-align:left;padding:9px 12px;border-bottom:1px solid #182234;vertical-align:top}
+    th{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:#7c90a8}
+    tr[role=button]{cursor:pointer}
+    tr[role=button]:hover td{background:#0e1826}
     .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
-    .bar{height:8px;border-radius:4px;background:#1a2434;overflow:hidden}
-    .bar>span{display:block;height:100%}
+    .bar{height:7px;border-radius:5px;background:#182234;overflow:hidden}
+    .bar>span{display:block;height:100%;border-radius:5px}
+    .skel{background:linear-gradient(90deg,#131d2c,#1a2637,#131d2c);background-size:200% 100%;animation:sk 1.2s infinite;border-radius:8px}
+    @keyframes sk{0%{background-position:200% 0}100%{background-position:-200% 0}}
+    .spin{width:15px;height:15px;border:2px solid #2b3a52;border-top-color:#4f9cf9;border-radius:50%;animation:sp .7s linear infinite;display:inline-block}
+    @keyframes sp{to{transform:rotate(360deg)}}
+    .dot{width:8px;height:8px;border-radius:50%;flex:none;margin-top:5px}
     .scroll{overflow:auto}
-    .tl-dot{width:8px;height:8px;border-radius:50%;margin-top:6px;flex:none}
-    .fade{animation:f .3s ease}
-    @keyframes f{from{opacity:0;transform:translateY(4px)}to{opacity:1}}
+    .kpi{font-size:26px;font-weight:650;line-height:1.1;margin-top:5px}
+    @media(max-width:1100px){.cols{grid-template-columns:1fr!important}}
   </style>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js"></script>
 </head>
-<body x-data="vigil()" x-init="init()" class="min-h-screen">
+<body x-data="vigil()" x-init="init()">
 
-<!-- ================= HEADER ================= -->
-<header class="flex items-center gap-4 px-5 py-3 border-b border-line sticky top-0 bg-bg/95 backdrop-blur z-20">
-  <div class="flex items-baseline gap-2 cursor-pointer" @click="go('dashboard')">
-    <span class="text-lg font-bold tracking-widest text-acc">VIGIL</span>
-    <span class="text-xs text-slate-400">AI Risk Investigator</span>
+<!-- ============ HEADER ============ -->
+<header class="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3 border-b border-line sticky top-0 bg-bg/95 backdrop-blur z-30">
+  <div class="flex items-baseline gap-2 cursor-pointer select-none" @click="go('dashboard')">
+    <span class="text-lg font-bold tracking-[0.2em] text-acc">VIGIL</span>
+    <span class="text-xs text-slate-400 hidden sm:inline">AI Risk Operations Center</span>
   </div>
-  <span class="chip" style="--c:#3a2a12;color:#e0b743">SYNTHETIC DEMO DATA</span>
-  <span class="chip mono" :style="`--c:${health.llm_configured?'#123':'#3a1212'}`"
-        :class="health.llm_configured?'text-low':'text-high'"
-        x-text="health.llm_configured ? ('LLM: '+health.model) : 'LLM: engine-only fallback'"></span>
+  <span class="chip" style="border-color:#3a2f12;color:#e6b53c">SYNTHETIC DEMO DATA</span>
+  <span class="chip mono" :class="health.llm_configured ? 'band-LOW' : 'band-MEDIUM'"
+        :style="`border-color:${health.llm_configured ? '#12352a' : '#3a2f12'}`">
+    <span class="dot" style="margin:0" :class="health.llm_configured ? 'bg-LOW' : 'bg-MEDIUM'"></span>
+    <span x-text="health.llm_configured ? ('AI: '+health.model) : 'AI: engine-only fallback (no API key)'"></span>
+  </span>
   <div class="ml-auto flex items-center gap-2">
     <button class="btn" @click="reset()" :disabled="busy">Reset demo</button>
     <button class="btn btn-primary" @click="simulate()" :disabled="busy">
-      <span x-show="!busy">⚡ Simulate attack</span><span x-show="busy">working…</span>
+      <template x-if="busy"><span class="flex items-center gap-2"><span class="spin"></span> Working…</span></template>
+      <template x-if="!busy"><span>⚡ Simulate attack</span></template>
     </button>
-    <span class="tl-dot" :class="health.db?'bg-LOW':'bg-CRITICAL'" style="margin:0"></span>
   </div>
 </header>
 
-<main class="p-5 max-w-[1500px] mx-auto">
+<main class="p-5 max-w-[1560px] mx-auto">
 
-  <!-- ================= DASHBOARD ================= -->
-  <section x-show="view==='dashboard'" class="space-y-5 fade">
-    <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3">
-      <template x-for="m in tiles" :key="m.k">
-        <div class="panel p-3">
-          <div class="text-xs text-slate-400" x-text="m.label"></div>
-          <div class="text-2xl font-semibold mt-1" :class="m.cls" x-text="m.val"></div>
-        </div>
-      </template>
+<!-- ==================================================== DASHBOARD -->
+<section x-show="view==='dashboard'">
+  <div class="flex items-baseline justify-between mb-4">
+    <h1 class="text-base font-semibold">Operations overview</h1>
+    <span class="text-xs text-slate-400" x-text="lastSync"></span>
+  </div>
+
+  <!-- loading skeleton -->
+  <div x-show="loading" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 mb-5">
+    <template x-for="i in 6" :key="i"><div class="panel p-4"><div class="skel h-3 w-20"></div><div class="skel h-7 w-14 mt-3"></div></div></template>
+  </div>
+
+  <div x-show="!loading" x-cloak>
+    <!-- PRIMARY KPIs -->
+    <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 mb-3">
+      <div class="panel p-4"><div class="lbl">Transactions monitored</div><div class="kpi" x-text="n(metrics.total_transactions)"></div>
+        <div class="text-[11px] text-slate-500 mt-1" x-text="n(metrics.analyzed)+' scored'"></div></div>
+      <div class="panel p-4"><div class="lbl">Suspicious</div><div class="kpi band-MEDIUM" x-text="n(metrics.suspicious)"></div>
+        <div class="text-[11px] text-slate-500 mt-1">flagged for monitoring</div></div>
+      <div class="panel p-4"><div class="lbl">Open cases</div><div class="kpi" x-text="n(metrics.open_cases)"></div>
+        <div class="text-[11px] text-slate-500 mt-1" x-text="n(metrics.high_risk_cases)+' high · '+n(metrics.critical_cases)+' critical'"></div></div>
+      <div class="panel p-4 bd-CRITICAL" style="border-width:1px"><div class="lbl">Critical cases</div>
+        <div class="kpi band-CRITICAL" x-text="n(metrics.critical_cases)"></div>
+        <div class="text-[11px] text-slate-500 mt-1">immediate attention</div></div>
+      <div class="panel p-4"><div class="lbl">Awaiting analyst review</div><div class="kpi band-HIGH" x-text="n(metrics.review_required)"></div>
+        <div class="text-[11px] text-slate-500 mt-1">human-in-the-loop queue</div></div>
+      <div class="panel p-4"><div class="lbl">Avg investigation time</div>
+        <div class="kpi" x-text="metrics.avg_investigation_time_s!=null ? metrics.avg_investigation_time_s+'s' : '—'"></div>
+        <div class="text-[11px] text-slate-500 mt-1">agent runtime per case</div></div>
     </div>
 
-    <div class="grid lg:grid-cols-3 gap-5">
-      <div class="panel p-4 lg:col-span-1">
-        <div class="text-sm font-semibold mb-3">Risk distribution</div>
-        <template x-for="b in ['LOW','MEDIUM','HIGH','CRITICAL']" :key="b">
-          <div class="mb-2">
-            <div class="flex justify-between text-xs mb-1">
-              <span :class="'band-'+b" x-text="b"></span>
-              <span class="text-slate-400" x-text="(metrics.risk_distribution?.[b]||0)"></span>
-            </div>
-            <div class="bar"><span :class="'bg-'+b"
-              :style="`width:${pct(metrics.risk_distribution?.[b]||0, metrics.analyzed||1)}%`"></span></div>
-          </div>
-        </template>
-        <div class="text-xs text-slate-500 mt-3" x-text="`${metrics.analyzed||0} of ${metrics.total_transactions||0} transactions scored`"></div>
-      </div>
-
-      <div class="panel p-4 lg:col-span-2">
-        <div class="flex items-center justify-between mb-3">
-          <div class="text-sm font-semibold">Case queue</div>
-          <div class="text-xs text-slate-400" x-text="cases.length + ' cases'"></div>
+    <!-- impact strip -->
+    <div class="panel p-3 mb-5 flex flex-wrap items-center gap-x-8 gap-y-2 text-xs">
+      <div><span class="lbl">Detection rate</span>
+        <span class="ml-2 font-semibold band-LOW" x-text="metrics.detection_rate!=null ? Math.round(metrics.detection_rate*100)+'%' : '—'"></span>
+        <span class="text-slate-500">of known attack transactions caught at HIGH+</span></div>
+      <div><span class="lbl">Median time to decision</span>
+        <span class="ml-2 font-semibold" x-text="metrics.median_time_to_decision_s!=null ? metrics.median_time_to_decision_s+'s' : '—'"></span>
+        <span class="text-slate-500">vs. 15–20 min manual triage (industry benchmark)</span></div>
+      <div class="ml-auto flex items-center gap-3">
+        <span class="lbl">Risk mix</span>
+        <div class="bar w-56 flex" style="gap:1px">
+          <template x-for="b in ['LOW','MEDIUM','HIGH','CRITICAL']" :key="b">
+            <span :class="'bg-'+b" :style="`width:${pct(metrics.risk_distribution?.[b]||0, metrics.analyzed||1)}%`"
+                  :title="b+': '+(metrics.risk_distribution?.[b]||0)"></span>
+          </template>
         </div>
-        <div class="scroll" style="max-height:340px">
+      </div>
+    </div>
+
+    <div class="grid gap-5 cols" style="grid-template-columns:1.35fr 1fr">
+      <!-- CASE QUEUE -->
+      <div class="panel p-0 overflow-hidden">
+        <div class="flex items-center justify-between px-4 py-3 border-b border-line">
+          <div class="text-sm font-semibold">Case queue</div>
+          <span class="text-xs text-slate-400" x-text="cases.length+' cases · priority order'"></span>
+        </div>
+        <div class="scroll" style="max-height:520px">
           <table>
-            <thead><tr><th>Case</th><th>Customer</th><th>Score</th><th>Band</th><th>Status</th><th>Opened</th></tr></thead>
+            <thead><tr><th>Case</th><th>Risk</th><th>What happened</th><th>Status</th></tr></thead>
             <tbody>
               <template x-for="c in cases" :key="c.id">
                 <tr role="button" @click="openCase(c.id)">
-                  <td class="mono" x-text="c.id"></td>
-                  <td class="mono" x-text="c.customer_id"></td>
-                  <td><span class="font-semibold" :class="'band-'+c.band" x-text="c.score_at_open"></span></td>
-                  <td><span class="chip" :class="'band-'+c.band" x-text="c.band"></span></td>
-                  <td class="text-xs" x-text="c.status"></td>
-                  <td class="text-xs text-slate-400" x-text="fmt(c.opened_at)"></td>
+                  <td><div class="mono text-xs" x-text="c.id"></div>
+                      <div class="text-[11px] text-slate-500 mono" x-text="c.customer_id"></div></td>
+                  <td><div class="flex items-center gap-2">
+                      <span class="text-lg font-bold" :class="'band-'+c.band" x-text="c.score_at_open"></span>
+                      <span class="chip" :class="'band-'+c.band" :style="`border-color:currentColor`" x-text="c.band"></span></div></td>
+                  <td class="text-xs text-slate-300" style="max-width:340px" x-text="c._headline || queueHeadline(c)"></td>
+                  <td><span class="chip" x-text="statusLabel(c.status)"></span>
+                      <div class="text-[11px] text-slate-500 mt-1" x-text="ago(c.opened_at)"></div></td>
                 </tr>
               </template>
-              <tr x-show="!cases.length"><td colspan="6" class="text-slate-500 text-center py-6">No open cases. Trigger one with “Simulate attack”.</td></tr>
+              <tr x-show="!cases.length"><td colspan="4" class="text-center text-slate-500 py-10">
+                No open cases. Click <b>⚡ Simulate attack</b> to trigger one.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- RECENT ACTIVITY -->
+      <div class="panel p-0 overflow-hidden">
+        <div class="px-4 py-3 border-b border-line text-sm font-semibold">Recent transactions</div>
+        <div class="scroll" style="max-height:520px">
+          <table>
+            <thead><tr><th>Time</th><th>Customer</th><th>Amount</th><th>City</th><th>Score</th></tr></thead>
+            <tbody>
+              <template x-for="t in txns" :key="t.id">
+                <tr>
+                  <td class="text-[11px] text-slate-400" x-text="hm(t.created_at)"></td>
+                  <td class="mono text-[11px]" x-text="t.customer_id"></td>
+                  <td class="text-xs" x-text="inr(t.amount_paise)"></td>
+                  <td class="text-[11px] text-slate-400" x-text="t.city"></td>
+                  <td><span class="text-xs font-semibold" :class="'band-'+(t.band||'')" x-text="t.score ?? '—'"></span></td>
+                </tr>
+              </template>
             </tbody>
           </table>
         </div>
       </div>
     </div>
+  </div>
+</section>
 
-    <div class="panel p-4">
-      <div class="text-sm font-semibold mb-3">Recent activity</div>
-      <div class="scroll" style="max-height:320px">
-        <table>
-          <thead><tr><th>Time</th><th>Txn</th><th>Customer</th><th>Amount</th><th>City</th><th>Score</th><th>Action</th></tr></thead>
-          <tbody>
-            <template x-for="t in txns" :key="t.id">
-              <tr :class="t.is_attack?'':''">
-                <td class="text-xs text-slate-400" x-text="fmt(t.created_at)"></td>
-                <td class="mono text-xs" x-text="t.id.slice(0,16)"></td>
-                <td class="mono text-xs" x-text="t.customer_id"></td>
-                <td x-text="inr(t.amount_paise)"></td>
-                <td class="text-xs" x-text="t.city"></td>
-                <td><span class="font-semibold" :class="'band-'+(t.band||'')" x-text="t.score ?? '—'"></span></td>
-                <td class="text-xs text-slate-400" x-text="t.recommended_action || ''"></td>
-              </tr>
-            </template>
-          </tbody>
-        </table>
+<!-- ==================================================== CASE DETAIL -->
+<section x-show="view==='case'" x-cloak>
+  <button class="btn mb-3" @click="go('dashboard')">← Dashboard</button>
+
+  <div x-show="!detail" class="panel p-8 text-center text-slate-400"><span class="spin"></span> Loading case…</div>
+
+  <template x-if="detail">
+  <div>
+    <!-- headline banner -->
+    <div class="panel p-4 mb-4" :class="'bd-'+detail.case.band" style="border-width:1px">
+      <div class="flex flex-wrap items-center gap-3">
+        <span class="chip text-sm font-semibold" :class="'band-'+detail.case.band" style="border-color:currentColor"
+              x-text="detail.case.band+' RISK'"></span>
+        <span class="mono text-sm" x-text="detail.case.id"></span>
+        <span class="chip" x-text="statusLabel(detail.case.status)"></span>
+        <span class="text-xs text-slate-400" x-text="'opened '+ago(detail.case.opened_at)"></span>
+      </div>
+      <div class="mt-2 text-[15px] font-medium" x-text="plainHeadline"></div>
+      <div class="text-xs text-slate-400 mt-1" x-text="plainSubhead"></div>
+    </div>
+
+    <!-- DECISION BAR -->
+    <div class="panel p-4 mb-4" :class="decided ? '' : 'bd-HIGH'" style="border-width:1px">
+      <div class="flex flex-wrap items-center gap-3">
+        <div class="lbl">Analyst decision</div>
+        <span class="text-xs text-slate-400">engine recommends
+          <b class="text-ink" x-text="actionLabel(engineAction)"></b>
+          <template x-if="lastRun"><span> · agent advises <b class="text-ink" x-text="actionLabel(lastRun.recommended_action)"></b>
+            <span x-show="!lastRun.concurs_with_engine" class="band-HIGH">⚡ dissent</span></span></template>
+        </span>
+        <div class="ml-auto flex flex-wrap gap-2" x-show="!decided">
+          <template x-for="a in actionButtons" :key="a">
+            <button class="btn" :class="a===pendingAction ? 'btn-sel ' : ''"
+              :style="a===engineAction ? 'border-color:#4f9cf9' : ''"
+              @click="chooseAction(a)" x-text="actionLabel(a)"></button>
+          </template>
+        </div>
+        <div x-show="decided" class="ml-auto chip band-LOW" style="border-color:currentColor"
+             x-text="'Resolved · '+actionLabel(detail.decisions[detail.decisions.length-1].final_action)"></div>
+      </div>
+
+      <div x-show="pendingAction && !decided" class="mt-3 pt-3 border-t border-line">
+        <div class="text-xs mb-2">
+          You selected <b x-text="actionLabel(pendingAction)"></b>.
+          <span x-show="isOverride" class="band-HIGH">This differs from the engine recommendation
+            (<span x-text="actionLabel(engineAction)"></span>) — a reason is required.</span>
+          <span x-show="!isOverride" class="text-slate-400">Matches the engine recommendation.</span>
+        </div>
+        <textarea x-model="overrideReason" rows="2"
+          class="w-full bg-panel2 border border-line rounded-lg p-2 text-sm mb-2"
+          :placeholder="isOverride ? 'Why are you overriding the recommendation? (required)' : 'Optional note for the audit trail'"></textarea>
+        <button class="btn btn-primary" @click="submitDecision()" :disabled="isOverride && !overrideReason.trim()">
+          Confirm decision</button>
+        <button class="btn" @click="pendingAction=null">Cancel</button>
       </div>
     </div>
-  </section>
 
-  <!-- ================= CASE DETAIL ================= -->
-  <section x-show="view==='case' && detail" class="fade" x-cloak>
-    <button class="btn mb-4" @click="go('dashboard')">← Back to dashboard</button>
+    <div class="grid gap-4 cols" style="grid-template-columns:0.9fr 1.05fr 1.05fr">
 
-    <template x-if="detail">
-    <div>
-      <div class="flex flex-wrap items-center gap-3 mb-4">
-        <span class="mono text-lg font-semibold" x-text="detail.case.id"></span>
-        <span class="chip" :class="'band-'+detail.case.band" x-text="detail.case.band"></span>
-        <span class="chip" style="--c:#26324a" x-text="detail.case.status"></span>
-        <span class="text-xs text-slate-400" x-text="'opened '+fmt(detail.case.opened_at)"></span>
+      <!-- ---------- LEFT: context ---------- -->
+      <div class="space-y-4">
+        <div class="panel p-4">
+          <div class="lbl mb-2">Transaction</div>
+          <div class="text-2xl font-bold" x-text="inr(detail.transaction.amount_paise)"></div>
+          <div class="text-sm text-slate-300" x-text="detail.transaction.city+' · '+detail.transaction.method.toUpperCase()+' · '+(detail.transaction.merchant_name||'—')"></div>
+          <div class="text-xs text-slate-400 mt-1" x-text="fmt(detail.transaction.created_at)"></div>
+          <div class="text-[11px] mono text-slate-400 mt-2">
+            device <span x-text="detail.transaction.device_id"></span>
+            <template x-if="detail.transaction.ip_addr"><span> · ip <span x-text="detail.transaction.ip_addr"></span></span></template>
+          </div>
+        </div>
 
-        <div class="ml-auto flex flex-wrap gap-2">
-          <template x-for="a in actionButtons" :key="a">
-            <button class="btn" :class="a===engineAction?'btn-primary':''"
-              @click="chooseAction(a)" :disabled="decided" x-text="a.replace(/_/g,' ')"></button>
+        <div class="panel p-4">
+          <div class="lbl mb-2">Customer</div>
+          <div class="mono text-sm" x-text="detail.customer.id"></div>
+          <div class="text-xs text-slate-300" x-text="'KYC tier '+detail.customer.kyc_tier+' · '+detail.customer.segment+' · '+detail.customer.txn_count+' prior transactions'"></div>
+          <div class="lbl mt-3 mb-1">Normal behaviour</div>
+          <ul class="text-xs text-slate-300 space-y-1">
+            <li>Typical spend <b x-text="inr(detail.customer.amount_median_paise)"></b> · p95 <span x-text="inr(detail.customer.amount_p95_paise)"></span></li>
+            <li>Home <b x-text="detail.customer.home_city"></b> · active <span x-text="detail.customer.active_hour_start+':00–'+detail.customer.active_hour_end+':00'"></span></li>
+            <li x-text="(detail.customer.known_device_ids||[]).length+' known device(s): '+(detail.customer.known_device_ids||[]).join(', ')"></li>
+          </ul>
+        </div>
+
+        <div class="panel p-4">
+          <div class="lbl mb-2">Related activity</div>
+          <template x-if="ringCustomers>0">
+            <div class="chip band-HIGH mb-2" style="border-color:currentColor"
+              x-text="'Same device used by '+ringCustomers+' other customer(s) — possible fraud ring'"></div>
+          </template>
+          <template x-if="detail.related_events.length">
+            <div class="space-y-1">
+              <template x-for="r in detail.related_events.slice(0,6)" :key="r.transaction_id">
+                <div class="text-[11px] flex justify-between gap-2 border-b border-line pb-1">
+                  <span class="mono" x-text="r.link_type.replace('_',' ')"></span>
+                  <span class="mono" x-text="r.customer_id"></span>
+                  <span x-text="inr(r.amount_paise)"></span>
+                </div>
+              </template>
+            </div>
+          </template>
+          <div x-show="!detail.related_events.length" class="text-xs text-slate-500">No linked events found.</div>
+        </div>
+      </div>
+
+      <!-- ---------- MIDDLE: score + why flagged ---------- -->
+      <div class="space-y-4">
+        <div class="panel p-4">
+          <div class="lbl mb-2">Risk score — computed by the deterministic engine</div>
+          <div class="flex items-center gap-5">
+            <svg width="128" height="128" viewBox="0 0 128 128" class="flex-none">
+              <circle cx="64" cy="64" r="52" fill="none" stroke="#182234" stroke-width="14"/>
+              <circle cx="64" cy="64" r="52" fill="none" stroke-width="14" stroke-linecap="round"
+                :stroke="bandColor(detail.assessment.band)"
+                :stroke-dasharray="326.7"
+                :stroke-dashoffset="326.7*(1-detail.assessment.score/100)"
+                transform="rotate(-90 64 64)"/>
+              <text x="64" y="60" text-anchor="middle" font-size="30" font-weight="700" :fill="bandColor(detail.assessment.band)"
+                x-text="detail.assessment.score"></text>
+              <text x="64" y="80" text-anchor="middle" font-size="11" fill="#7c90a8">/ 100</text>
+            </svg>
+            <div>
+              <div class="text-xl font-bold" :class="'band-'+detail.assessment.band" x-text="detail.assessment.band"></div>
+              <div class="text-xs text-slate-400 mt-1">engine recommends</div>
+              <div class="text-sm font-semibold" x-text="actionLabel(detail.assessment.recommended_action)"></div>
+              <div class="text-[11px] text-slate-500 mt-2" x-text="'scored in '+detail.assessment.latency_ms+' ms · engine v'+(detail.assessment.engine_version||'1.0')"></div>
+            </div>
+          </div>
+
+          <template x-if="detail.assessment.rules_fired?.length">
+            <div class="mt-3 rounded-lg p-2" style="background:#1c130a">
+              <div class="lbl band-HIGH mb-1">Deterministic rules fired</div>
+              <template x-for="r in detail.assessment.rules_fired" :key="r.code">
+                <div class="text-xs band-HIGH mb-1">
+                  ⚠ <span class="mono" x-text="r.code.replace('R_','')"></span>
+                  <span class="text-slate-500" x-text="'(floor '+r.floor+')'"></span>
+                  <div class="text-[11px] text-slate-300" x-text="r.detail"></div>
+                </div>
+              </template>
+              <div class="text-[11px] text-slate-500"
+                x-show="detail.assessment.score > detail.assessment.base_score"
+                x-text="'statistical score '+detail.assessment.base_score+' → '+detail.assessment.score+' (raised by rule floor)'"></div>
+              <div class="text-[11px] text-slate-500"
+                x-show="detail.assessment.score <= detail.assessment.base_score"
+                x-text="'statistical score '+detail.assessment.base_score+' already exceeds the rule floor'"></div>
+            </div>
+          </template>
+        </div>
+
+        <div class="panel p-4">
+          <div class="lbl mb-3">Why it was flagged — evidence for each factor</div>
+          <template x-for="f in factorViews" :key="f.code">
+            <div class="mb-3 pb-3 border-b border-line last:border-0">
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-medium" x-text="f.name"></span>
+                <span class="text-xs text-slate-400" x-text="f.share+'% of score'"></span>
+              </div>
+              <div class="bar mt-1 mb-2"><span :class="'bg-'+f.sev" :style="`width:${f.share}%`"></span></div>
+              <div class="grid grid-cols-3 gap-2 text-[11px]">
+                <div><span class="lbl">Current</span><div class="font-semibold" x-text="f.current"></div></div>
+                <div><span class="lbl">Baseline</span><div x-text="f.baseline"></div></div>
+                <div><span class="lbl">Deviation</span><div class="band-HIGH" x-text="f.deviation"></div></div>
+              </div>
+            </div>
+          </template>
+          <div x-show="!factorViews.length" class="text-xs text-slate-500">No individual factor crossed threshold; score driven by rules.</div>
+        </div>
+
+        <div class="panel p-4">
+          <div class="lbl mb-2">Timeline</div>
+          <div class="space-y-2">
+            <template x-for="(e,i) in detail.timeline" :key="i">
+              <div class="flex gap-2 text-xs">
+                <span class="dot" :class="{'bg-LOW':e.severity==='info','bg-MEDIUM':e.severity==='warn','bg-CRITICAL':e.severity==='danger'}"></span>
+                <span class="mono text-slate-400 flex-none" x-text="clock(e.ts)"></span>
+                <span x-text="e.label"></span>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---------- RIGHT: AI investigation + audit ---------- -->
+      <div class="space-y-4">
+        <div class="panel p-4">
+          <div class="flex items-center justify-between mb-2">
+            <div class="lbl">AI investigation</div>
+            <button class="btn btn-primary" @click="investigate()" :disabled="investigating || !!lastRun">
+              <template x-if="investigating"><span class="flex items-center gap-2"><span class="spin"></span> Investigating…</span></template>
+              <template x-if="!investigating"><span x-text="lastRun ? 'Complete' : 'Investigate'"></span></template>
+            </button>
+          </div>
+
+          <div x-show="investigating" class="text-xs text-slate-400 space-y-1 py-2">
+            <div>Agent is gathering evidence from the database…</div>
+            <div class="mono text-[11px] text-slate-500">▸ risk assessment · transaction history · auth events · device &amp; IP graph</div>
+          </div>
+
+          <div x-show="!lastRun && !investigating" class="text-xs text-slate-500">
+            Not yet investigated. The agent will read this case's data with read-only tools,
+            produce findings that cite evidence, and every number is re-checked against the database.
+          </div>
+
+          <template x-if="lastRun">
+            <div class="space-y-3">
+              <div class="flex flex-wrap gap-2">
+                <span class="chip mono" x-text="lastRun.mode==='llm' ? lastRun.model : 'engine-only fallback'"></span>
+                <span class="chip mono" x-text="lastRun.tool_call_count+' tool calls'"></span>
+                <span class="chip mono" x-text="lastRun.latency_ms+' ms'"></span>
+                <span class="chip" :class="groundColor" style="border-color:currentColor"
+                  x-text="'grounding: '+lastRun.grounding_verdict"></span>
+              </div>
+
+              <div x-show="lastRun.mode!=='llm'" class="text-[11px] band-MEDIUM">
+                No API key configured — this is a deterministic engine-only investigation, not an LLM.
+                <template x-if="lastRun.failure_reason"><span x-text="' ('+lastRun.failure_reason+')'"></span></template>
+              </div>
+
+              <div x-show="lastRun.tool_log?.length">
+                <div class="lbl mb-1">Evidence gathering</div>
+                <template x-for="tc in lastRun.tool_log" :key="tc.seq">
+                  <div class="text-[11px] mono flex justify-between border-b border-line py-0.5">
+                    <span class="band-LOW">✓ <span class="text-ink" x-text="tc.tool"></span></span>
+                    <span class="text-slate-500" x-text="(tc.summary||'')+' · '+(tc.ms||0)+'ms'"></span>
+                  </div>
+                </template>
+              </div>
+
+              <div>
+                <div class="lbl mb-1">Summary</div>
+                <div class="text-xs text-slate-200" x-text="lastRun.summary"></div>
+                <div class="text-xs text-slate-300 mt-1" x-show="lastRun.behavioral_deviation" x-text="lastRun.behavioral_deviation"></div>
+              </div>
+
+              <div>
+                <div class="lbl mb-1 flex justify-between">
+                  <span>Findings</span>
+                  <span :class="lastRun.claims_verified===lastRun.claims_total ? 'band-LOW':'band-MEDIUM'"
+                    x-text="'✓ '+lastRun.claims_verified+' / '+lastRun.claims_total+' claims re-verified against DB'"></span>
+                </div>
+                <template x-for="(f,i) in lastRun.findings" :key="i">
+                  <div class="text-xs border border-line rounded-lg p-2 mb-1">
+                    <div class="flex justify-between gap-2">
+                      <span class="font-medium" x-text="f.title"></span>
+                      <span class="chip flex-none" style="border-color:currentColor" :class="{
+                        'band-LOW':f.validation_status==='VERIFIED',
+                        'band-MEDIUM':f.validation_status==='UNVERIFIED',
+                        'band-CRITICAL':f.validation_status==='REFUTED'}" x-text="f.validation_status"></span>
+                    </div>
+                    <div class="text-[11px] text-slate-400 mt-1" x-text="f.detail"></div>
+                    <div class="text-[11px] mono text-slate-500 mt-1" x-show="f.evidence_refs?.length"
+                      x-text="'evidence: '+f.evidence_refs.join(', ')"></div>
+                  </div>
+                </template>
+              </div>
+
+              <div class="rounded-lg p-2" style="background:#0d1521">
+                <div class="text-xs">Engine: <b x-text="actionLabel(engineAction)"></b></div>
+                <div class="text-xs mt-0.5">Agent: <b x-text="actionLabel(lastRun.recommended_action)"></b>
+                  <span x-show="!lastRun.concurs_with_engine" class="band-HIGH">⚡ dissents from engine</span></div>
+                <div class="text-[11px] text-slate-400 mt-1" x-show="lastRun.dissent_reason" x-text="lastRun.dissent_reason"></div>
+                <div class="text-[11px] text-slate-500 mt-1"
+                  x-text="'confidence '+Math.round(lastRun.confidence*100)+'% · '+(lastRun.requires_human_review ? 'human review required':'no review required')"></div>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <div class="panel p-4">
+          <button class="lbl w-full text-left" @click="showEvidence=!showEvidence"
+            x-text="(showEvidence?'▾':'▸')+'  Evidence ledger ('+detail.evidence.length+' items)'"></button>
+          <div x-show="showEvidence" class="mt-2 space-y-1">
+            <template x-for="ev in detail.evidence" :key="ev.id">
+              <div class="text-[11px] border-b border-line py-1">
+                <span class="mono band-LOW" x-text="ev.id"></span>
+                <span class="text-slate-400" x-text="' · '+ev.metric"></span>
+                <span x-show="ev.verified" class="band-LOW"> ✓ verified</span>
+                <div class="text-slate-500" x-text="ev.detail"></div>
+              </div>
+            </template>
+            <div x-show="!detail.evidence.length" class="text-[11px] text-slate-500">Populated when the agent runs.</div>
+          </div>
+        </div>
+
+        <div class="panel p-4">
+          <div class="lbl mb-2">Audit trail</div>
+          <div class="space-y-1">
+            <template x-for="a in detail.audit" :key="a.id">
+              <div class="text-[11px] flex gap-2 border-b border-line py-1">
+                <span class="mono text-slate-500 flex-none" x-text="clock(a.created_at)"></span>
+                <span class="flex-none" :class="a.actor.includes('@') ? 'band-MEDIUM':'text-slate-400'" x-text="a.actor"></span>
+                <span>
+                  <span x-text="auditLabel(a.action)"></span>
+                  <template x-if="a.detail?.recommended_action"><span class="text-slate-500" x-text="' → '+actionLabel(a.detail.recommended_action)"></span></template>
+                  <template x-if="a.detail?.final_action"><span class="text-slate-500" x-text="' → '+actionLabel(a.detail.final_action)"></span></template>
+                  <template x-if="a.detail?.override_reason"><div class="band-HIGH" x-text="'reason: '+a.detail.override_reason"></div></template>
+                </span>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <div class="panel p-4" x-show="detail.decisions.length">
+          <div class="lbl mb-2">Decisions</div>
+          <template x-for="d in detail.decisions" :key="d.id">
+            <div class="text-xs border-b border-line py-1">
+              <b x-text="d.decision"></b> → <span x-text="actionLabel(d.final_action)"></span>
+              <span class="text-slate-400" x-text="' · '+d.actor"></span>
+              <div class="text-[11px] band-HIGH" x-show="d.override_reason" x-text="'reason: '+d.override_reason"></div>
+            </div>
           </template>
         </div>
       </div>
-
-      <div x-show="pendingAction" class="panel p-3 mb-4" style="border-color:#3a2a12">
-        <div class="text-xs mb-2">
-          Confirm decision: <b x-text="pendingAction?.replace(/_/g,' ')"></b>
-          <span x-show="isOverride" class="band-HIGH">— differs from engine recommendation
-            (<span x-text="engineAction?.replace(/_/g,' ')"></span>), reason required</span>
-        </div>
-        <textarea x-show="isOverride" x-model="overrideReason" rows="2"
-          class="w-full bg-panel2 border border-line rounded p-2 text-sm mb-2"
-          placeholder="Why are you overriding the engine recommendation?"></textarea>
-        <button class="btn btn-primary" @click="submitDecision()"
-          :disabled="isOverride && !overrideReason.trim()">Confirm</button>
-        <button class="btn" @click="pendingAction=null">Cancel</button>
-      </div>
-
-      <div class="grid lg:grid-cols-3 gap-4">
-
-        <!-- LEFT -->
-        <div class="space-y-4">
-          <div class="panel p-4">
-            <div class="text-xs text-slate-400 mb-2">TRANSACTION</div>
-            <div class="text-2xl font-semibold" x-text="inr(detail.transaction.amount_paise)"></div>
-            <div class="text-sm text-slate-300" x-text="detail.transaction.city + ' · ' + detail.transaction.method.toUpperCase()"></div>
-            <div class="text-xs text-slate-400 mt-1" x-text="fmt(detail.transaction.created_at)"></div>
-            <div class="text-xs mono mt-2 text-slate-400" x-text="'device '+detail.transaction.device_id + (detail.transaction.ip_addr? ' · ip '+detail.transaction.ip_addr:'')"></div>
-            <div x-show="detail.transaction.scenario_label" class="chip mt-2 inline-block band-CRITICAL" style="--c:#3a1212"
-                 x-text="'ground truth: '+detail.transaction.scenario_label"></div>
-          </div>
-
-          <div class="panel p-4">
-            <div class="text-xs text-slate-400 mb-2">CUSTOMER</div>
-            <div class="mono" x-text="detail.customer.id"></div>
-            <div class="text-sm" x-text="'KYC tier '+detail.customer.kyc_tier+' · '+detail.customer.segment"></div>
-            <div class="text-xs text-slate-400 mt-2">Baseline</div>
-            <ul class="text-xs text-slate-300 space-y-0.5 mt-1">
-              <li x-text="detail.customer.txn_count+' transactions on record'"></li>
-              <li x-text="'median '+inr(detail.customer.amount_median_paise)+' · p95 '+inr(detail.customer.amount_p95_paise)"></li>
-              <li x-text="'home '+detail.customer.home_city+' · active '+detail.customer.active_hour_start+':00–'+detail.customer.active_hour_end+':00'"></li>
-              <li x-text="(detail.customer.known_device_ids||[]).length+' known device(s): '+(detail.customer.known_device_ids||[]).join(', ')"></li>
-            </ul>
-          </div>
-
-          <div class="panel p-4">
-            <div class="text-xs text-slate-400 mb-2">RELATED EVENTS</div>
-            <template x-if="detail.related_events.length">
-              <div class="space-y-1">
-                <template x-for="r in detail.related_events" :key="r.transaction_id">
-                  <div class="text-xs flex justify-between gap-2 border-b border-line pb-1">
-                    <span class="mono" x-text="r.link_type"></span>
-                    <span class="mono" x-text="r.customer_id"></span>
-                    <span x-text="inr(r.amount_paise)"></span>
-                  </div>
-                </template>
-                <div class="text-xs band-HIGH mt-2" x-show="ringCustomers>1"
-                  x-text="'Same device on '+ringCustomers+' other customers — possible fraud ring'"></div>
-              </div>
-            </template>
-            <div x-show="!detail.related_events.length" class="text-xs text-slate-500">None found.</div>
-          </div>
-        </div>
-
-        <!-- MIDDLE -->
-        <div class="space-y-4">
-          <div class="panel p-4">
-            <div class="flex items-end gap-4">
-              <div>
-                <div class="text-xs text-slate-400">RISK SCORE</div>
-                <div class="text-5xl font-bold" :class="'band-'+detail.assessment.band"
-                     x-text="detail.assessment.score"></div>
-                <div class="text-sm font-semibold" :class="'band-'+detail.assessment.band" x-text="detail.assessment.band"></div>
-              </div>
-              <div class="text-xs text-slate-400 pb-1">
-                <div x-text="'engine v'+ (detail.assessment.engine_version||'1.0')"></div>
-                <div x-text="'recommends: '+detail.assessment.recommended_action.replace(/_/g,' ')"></div>
-                <div x-text="detail.assessment.latency_ms+' ms'"></div>
-              </div>
-            </div>
-
-            <div class="text-xs text-slate-400 mt-4 mb-2">WHY THIS SCORE</div>
-            <template x-for="s in sortedSignals" :key="s.code">
-              <div class="mb-2" x-show="s.contribution_pct>0 || s.triggered">
-                <div class="flex justify-between text-xs mb-1">
-                  <span class="mono" x-text="s.code"></span>
-                  <span class="text-slate-400" x-text="Math.round(s.contribution_pct)+'%'"></span>
-                </div>
-                <div class="bar"><span class="bg-HIGH" :style="`width:${s.contribution_pct}%`"></span></div>
-                <div class="text-[11px] text-slate-400 mt-1" x-text="s.explanation"></div>
-              </div>
-            </template>
-
-            <template x-if="detail.assessment.rules_fired?.length">
-              <div class="mt-3 p-2 rounded" style="background:#1a1206">
-                <template x-for="r in detail.assessment.rules_fired" :key="r.code">
-                  <div class="text-xs band-HIGH">
-                    ⚠ Rule <span class="mono" x-text="r.code"></span> — floor <span x-text="r.floor"></span>
-                    <div class="text-[11px] text-slate-300" x-text="r.detail"></div>
-                  </div>
-                </template>
-                <div class="text-[11px] text-slate-400 mt-1"
-                  x-text="'base score '+detail.assessment.base_score+' → '+detail.assessment.score+' after rule floor'"></div>
-              </div>
-            </template>
-          </div>
-
-          <div class="panel p-4">
-            <div class="text-xs text-slate-400 mb-2">TIMELINE</div>
-            <div class="space-y-2">
-              <template x-for="(e,i) in detail.timeline" :key="i">
-                <div class="flex gap-2 text-xs">
-                  <span class="tl-dot" :class="{'bg-LOW':e.severity==='info','bg-MEDIUM':e.severity==='warn','bg-CRITICAL':e.severity==='danger'}"></span>
-                  <span class="text-slate-400 mono flex-none" x-text="clock(e.ts)"></span>
-                  <span x-text="e.label"></span>
-                </div>
-              </template>
-            </div>
-          </div>
-        </div>
-
-        <!-- RIGHT -->
-        <div class="space-y-4">
-          <div class="panel p-4">
-            <div class="flex items-center justify-between mb-2">
-              <div class="text-xs text-slate-400">AI INVESTIGATION</div>
-              <button class="btn btn-primary" @click="investigate()" :disabled="investigating || !!lastRun"
-                x-text="investigating ? 'investigating…' : (lastRun ? 'complete' : 'Investigate')"></button>
-            </div>
-
-            <template x-if="lastRun">
-              <div class="space-y-3">
-                <div class="flex flex-wrap gap-2 text-xs">
-                  <span class="chip mono" style="--c:#26324a" x-text="lastRun.mode==='llm' ? lastRun.model : 'engine-only'"></span>
-                  <span class="chip mono" style="--c:#26324a" x-text="lastRun.tool_call_count+' tool calls'"></span>
-                  <span class="chip mono" style="--c:#26324a" x-text="lastRun.latency_ms+' ms'"></span>
-                  <span class="chip" :class="lastRun.grounding_verdict==='PASS'?'band-LOW':(lastRun.grounding_verdict==='PARTIAL'?'band-MEDIUM':'band-CRITICAL')"
-                    x-text="'grounding '+lastRun.grounding_verdict"></span>
-                </div>
-
-                <div x-show="lastRun.tool_log?.length">
-                  <div class="text-[11px] text-slate-400 mb-1">EVIDENCE GATHERING</div>
-                  <template x-for="tc in lastRun.tool_log" :key="tc.seq">
-                    <div class="text-[11px] mono flex justify-between border-b border-line py-0.5">
-                      <span>▸ <span x-text="tc.tool"></span></span>
-                      <span class="text-slate-400" x-text="(tc.summary||'')+' · '+(tc.ms||0)+'ms'"></span>
-                    </div>
-                  </template>
-                </div>
-
-                <div>
-                  <div class="text-[11px] text-slate-400 mb-1">SUMMARY</div>
-                  <div class="text-xs text-slate-200" x-text="lastRun.summary"></div>
-                </div>
-
-                <div>
-                  <div class="text-[11px] text-slate-400 mb-1 flex justify-between">
-                    <span>FINDINGS</span>
-                    <span :class="lastRun.claims_verified===lastRun.claims_total?'band-LOW':'band-MEDIUM'"
-                      x-text="'✓ '+lastRun.claims_verified+'/'+lastRun.claims_total+' claims verified'"></span>
-                  </div>
-                  <template x-for="(f,i) in lastRun.findings" :key="i">
-                    <div class="text-xs border border-line rounded p-2 mb-1">
-                      <div class="flex justify-between gap-2">
-                        <span class="font-medium" x-text="f.title"></span>
-                        <span class="chip flex-none" :class="{
-                          'band-LOW':f.validation_status==='VERIFIED',
-                          'band-MEDIUM':f.validation_status==='UNVERIFIED',
-                          'band-CRITICAL':f.validation_status==='REFUTED'}"
-                          x-text="f.validation_status"></span>
-                      </div>
-                      <div class="text-[11px] text-slate-400 mt-1" x-text="f.detail"></div>
-                      <div class="text-[11px] mono text-slate-500 mt-1" x-show="f.evidence_refs?.length"
-                        x-text="'evidence: '+f.evidence_refs.join(', ')"></div>
-                    </div>
-                  </template>
-                </div>
-
-                <div class="p-2 rounded" style="background:#0e1522">
-                  <div class="text-xs">ENGINE: <b x-text="engineAction.replace(/_/g,' ')"></b></div>
-                  <div class="text-xs mt-0.5">AGENT: <b x-text="lastRun.recommended_action.replace(/_/g,' ')"></b>
-                    <span x-show="!lastRun.concurs_with_engine" class="band-HIGH">⚡ dissents</span>
-                  </div>
-                  <div class="text-[11px] text-slate-400 mt-1" x-show="lastRun.dissent_reason" x-text="lastRun.dissent_reason"></div>
-                  <div class="text-[11px] text-slate-400 mt-1"
-                    x-text="'confidence '+Math.round(lastRun.confidence*100)+'% · '+(lastRun.requires_human_review?'human review required':'no review required')"></div>
-                </div>
-              </div>
-            </template>
-            <div x-show="!lastRun && !investigating" class="text-xs text-slate-500">
-              Not yet investigated. Click “Investigate” to dispatch the agent.
-            </div>
-          </div>
-
-          <div class="panel p-4">
-            <button class="text-xs text-slate-400 w-full text-left" @click="showEvidence=!showEvidence"
-              x-text="(showEvidence?'▾':'▸')+' EVIDENCE LEDGER ('+detail.evidence.length+')'"></button>
-            <div x-show="showEvidence" class="mt-2 space-y-1">
-              <template x-for="ev in detail.evidence" :key="ev.id">
-                <div class="text-[11px] border-b border-line py-1">
-                  <span class="mono" x-text="ev.id"></span> ·
-                  <span x-text="ev.metric"></span>
-                  <span x-show="ev.verified" class="band-LOW">✓</span>
-                  <div class="text-slate-500" x-text="ev.detail"></div>
-                </div>
-              </template>
-            </div>
-          </div>
-
-          <div class="panel p-4">
-            <button class="text-xs text-slate-400 w-full text-left" @click="showAudit=!showAudit"
-              x-text="(showAudit?'▾':'▸')+' AUDIT TRAIL ('+detail.audit.length+')'"></button>
-            <div x-show="showAudit" class="mt-2 space-y-1">
-              <template x-for="a in detail.audit" :key="a.id">
-                <div class="text-[11px] flex gap-2 border-b border-line py-1">
-                  <span class="text-slate-500 mono flex-none" x-text="clock(a.created_at)"></span>
-                  <span class="flex-none text-slate-400" x-text="a.actor"></span>
-                  <span x-text="a.action"></span>
-                </div>
-              </template>
-            </div>
-          </div>
-
-          <div class="panel p-4" x-show="detail.decisions.length">
-            <div class="text-xs text-slate-400 mb-2">DECISIONS</div>
-            <template x-for="d in detail.decisions" :key="d.id">
-              <div class="text-xs border-b border-line py-1">
-                <b x-text="d.decision"></b> → <span x-text="d.final_action.replace(/_/g,' ')"></span>
-                <span class="text-slate-400" x-text="' by '+d.actor"></span>
-                <div class="text-[11px] band-HIGH" x-show="d.override_reason" x-text="'override: '+d.override_reason"></div>
-              </div>
-            </template>
-          </div>
-        </div>
-      </div>
     </div>
-    </template>
-  </section>
+  </div>
+  </template>
+</section>
 
-  <div x-show="error" class="fixed bottom-4 right-4 panel p-3 text-xs band-CRITICAL" style="border-color:#3a1212" x-text="error"></div>
+<div x-show="error" x-cloak class="fixed bottom-4 right-4 panel p-3 text-xs band-CRITICAL max-w-sm" style="border-color:#3a1212">
+  <b>Error.</b> <span x-text="error"></span>
+</div>
 </main>
 
 <script>
+const ACTION_LABEL = {ALLOW:'Allow', MONITOR:'Monitor', STEP_UP_AUTH:'Step-up verification',
+  HOLD_FOR_REVIEW:'Hold for review', BLOCK:'Block'};
+const SIGNAL_LABEL = {AMT_DEV:'Amount anomaly', VEL_1H:'Velocity anomaly', AUTH_FAIL:'Failed authentication',
+  DEV_NEW:'New device', GEO_DIST:'Location anomaly', TIME_ODD:'Unusual time of day'};
+const AUDIT_LABEL = {risk_assessed:'Risk detected by engine', case_opened:'Case opened',
+  investigation_started:'AI investigation started', ai_recommendation_generated:'AI recommendation generated',
+  analyst_decision:'Analyst decision recorded'};
+const STATUS_LABEL = {NEW:'New', INVESTIGATING:'Investigating', REVIEW_REQUIRED:'Needs review',
+  APPROVED:'Approved', BLOCKED:'Blocked', RESOLVED:'Resolved'};
+const BAND_COLOR = {LOW:'#35c48b', MEDIUM:'#e6b53c', HIGH:'#f0912d', CRITICAL:'#f0524b'};
+
 function vigil() {
   return {
-    view: 'dashboard', busy: false, error: '',
-    health: {db:true, llm_configured:false, model:''},
-    metrics: {}, cases: [], txns: [],
-    detail: null, investigating: false,
-    pendingAction: null, overrideReason: '', showEvidence:false, showAudit:false,
+    view:'dashboard', busy:false, loading:true, error:'', lastSync:'',
+    health:{db:true, llm_configured:false, model:''},
+    metrics:{}, cases:[], txns:[],
+    detail:null, investigating:false,
+    pendingAction:null, overrideReason:'', showEvidence:false, showAudit:false,
 
-    async init() {
+    async init(){
       await this.refreshHealth();
       await this.loadDashboard();
-      setInterval(() => { if (this.view==='dashboard') this.loadDashboard(true); }, 5000);
+      this.loading=false;
+      setInterval(()=>{ if(this.view==='dashboard' && !this.busy) this.loadDashboard(true); }, 6000);
     },
-    async api(path, opts) {
-      const r = await fetch(path, {headers:{'Content-Type':'application/json'}, ...opts});
-      if (!r.ok) { const t = await r.text(); this.flash(`${r.status}: ${t.slice(0,140)}`); throw new Error(t); }
-      return r.status===204 ? null : r.json();
+    async api(path, opts){
+      try{
+        const r = await fetch(path, {headers:{'Content-Type':'application/json'}, ...opts});
+        if(!r.ok){ let m=r.status+''; try{const j=await r.json(); m=(j.detail||j.error?.message||JSON.stringify(j)).toString();}catch(e){}
+          this.flash(m.slice(0,160)); throw new Error(m); }
+        return r.status===204 ? null : r.json();
+      }catch(e){ if(e instanceof TypeError) this.flash('Cannot reach backend at '+location.origin); throw e; }
     },
-    flash(m){ this.error=m; setTimeout(()=>this.error='',6000); },
+    flash(m){ this.error=m; clearTimeout(this._et); this._et=setTimeout(()=>this.error='',7000); },
 
-    async refreshHealth(){ try{ this.health = await this.api('/api/health'); }catch(e){} },
+    async refreshHealth(){ try{ this.health=await this.api('/api/health'); }catch(e){} },
     async loadDashboard(quiet){
       try{
         const [m,c,t] = await Promise.all([
-          this.api('/api/dashboard/metrics'),
-          this.api('/api/cases'),
-          this.api('/api/transactions?limit=40'),
+          this.api('/api/dashboard/metrics'), this.api('/api/cases'), this.api('/api/transactions?limit=30'),
         ]);
         this.metrics=m; this.cases=c; this.txns=t;
+        this.lastSync='synced '+new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
       }catch(e){ if(!quiet) this.flash('Failed to load dashboard'); }
     },
     async openCase(id){
-      try{ this.detail = await this.api('/api/cases/'+id); this.view='case';
-        this.pendingAction=null; this.overrideReason=''; window.scrollTo(0,0);
-      }catch(e){ this.flash('Failed to open case'); }
+      this.detail=null; this.view='case'; window.scrollTo(0,0);
+      this.pendingAction=null; this.overrideReason=''; this.showEvidence=false;
+      try{ this.detail=await this.api('/api/cases/'+id); }
+      catch(e){ this.flash('Failed to open case'); this.view='dashboard'; }
     },
     go(v){ this.view=v; if(v==='dashboard') this.loadDashboard(); },
 
     async simulate(){
       this.busy=true;
       try{
-        const r = await this.api('/api/simulate/scenario',{method:'POST',body:JSON.stringify({scenario:'account_takeover'})});
-        await this.loadDashboard();
+        const r=await this.api('/api/simulate/scenario',{method:'POST',body:JSON.stringify({scenario:'account_takeover'})});
+        await this.loadDashboard(true);
         if(r.case_id) await this.openCase(r.case_id);
       }catch(e){} finally{ this.busy=false; }
     },
     async reset(){
       this.busy=true;
-      try{ await this.api('/api/admin/reset',{method:'POST',body:'{}'}); this.view='dashboard'; await this.loadDashboard(); }
+      try{ await this.api('/api/admin/reset',{method:'POST',body:'{}'}); this.view='dashboard'; this.detail=null; await this.loadDashboard(true); }
       catch(e){} finally{ this.busy=false; }
     },
     async investigate(){
@@ -457,50 +574,94 @@ function vigil() {
       this.investigating=true;
       try{
         await this.api('/api/cases/'+this.detail.case.id+'/investigate',{method:'POST',body:'{}'});
-        this.detail = await this.api('/api/cases/'+this.detail.case.id);
-      }catch(e){ this.flash('Investigation failed'); }
+        this.detail=await this.api('/api/cases/'+this.detail.case.id);
+      }catch(e){ this.flash('Investigation failed — try again'); }
       finally{ this.investigating=false; }
     },
 
-    chooseAction(a){ this.pendingAction=a; if(!this.isOverride) this.overrideReason=''; },
+    chooseAction(a){ this.pendingAction = (this.pendingAction===a ? null : a); },
     async submitDecision(){
       const a=this.pendingAction; if(!a) return;
-      const decision = this.isOverride ? 'OVERRIDE' : (a==='BLOCK'||a==='HOLD_FOR_REVIEW' ? 'REJECT' : 'APPROVE');
+      const decision = this.isOverride ? 'OVERRIDE' : (['BLOCK','HOLD_FOR_REVIEW'].includes(a) ? 'REJECT' : 'APPROVE');
       try{
         await this.api('/api/cases/'+this.detail.case.id+'/decision',{method:'POST',
-          body:JSON.stringify({decision, final_action:a, override_reason:this.overrideReason||null})});
+          body:JSON.stringify({decision, final_action:a, override_reason:this.overrideReason.trim()||null})});
         this.pendingAction=null; this.overrideReason='';
-        this.detail = await this.api('/api/cases/'+this.detail.case.id);
+        this.detail=await this.api('/api/cases/'+this.detail.case.id);
+        this.loadDashboard(true);
       }catch(e){}
     },
 
     // ---- derived ----
-    get tiles(){ const m=this.metrics; return [
-      {k:'t',label:'Transactions',val:m.total_transactions??'—'},
-      {k:'a',label:'Analysed',val:m.analyzed??'—'},
-      {k:'s',label:'Suspicious',val:m.suspicious??'—',cls:'band-MEDIUM'},
-      {k:'h',label:'High risk',val:m.high_risk??'—',cls:'band-HIGH'},
-      {k:'c',label:'Critical',val:m.critical??'—',cls:'band-CRITICAL'},
-      {k:'r',label:'Need review',val:m.review_required??'—',cls:'band-HIGH'},
-      {k:'d',label:'Detection rate',val:m.detection_rate!=null?Math.round(m.detection_rate*100)+'%':'—',cls:'band-LOW'},
-      {k:'m',label:'Median time-to-decision',val:m.median_time_to_decision_s!=null?m.median_time_to_decision_s+'s':'—'},
-    ];},
-    get sortedSignals(){ return [...(this.detail?.assessment?.signals||[])].sort((a,b)=>b.contribution_pct-a.contribution_pct); },
-    get lastRun(){ const r=this.detail?.runs||[]; return r.length? r[r.length-1] : null; },
+    get lastRun(){ const r=this.detail?.runs||[]; return r.length ? r[r.length-1] : null; },
     get engineAction(){ return this.detail?.assessment?.recommended_action || ''; },
     get actionButtons(){ return ['ALLOW','MONITOR','STEP_UP_AUTH','HOLD_FOR_REVIEW','BLOCK']; },
     get isOverride(){ return this.pendingAction && this.pendingAction !== this.engineAction; },
     get decided(){ return (this.detail?.decisions||[]).length>0; },
-    get ringCustomers(){ const s=new Set((this.detail?.related_events||[]).filter(r=>r.link_type==='shared_device').map(r=>r.customer_id)); return s.size; },
+    get ringCustomers(){ return new Set((this.detail?.related_events||[])
+      .filter(r=>r.link_type==='shared_device').map(r=>r.customer_id)).size; },
+    get groundColor(){ const v=this.lastRun?.grounding_verdict;
+      return v==='PASS'?'band-LOW':(v==='PARTIAL'?'band-MEDIUM':'band-CRITICAL'); },
+
+    get factorViews(){
+      const sigs=(this.detail?.assessment?.signals||[]).filter(s=>s.triggered || s.contribution_pct>=1);
+      sigs.sort((a,b)=>b.contribution_pct-a.contribution_pct);
+      const cust=this.detail?.customer||{};
+      return sigs.map(s=>{
+        const v={code:s.code, name:SIGNAL_LABEL[s.code]||s.code, share:Math.round(s.contribution_pct),
+          sev: s.normalized>=0.66?'CRITICAL':(s.normalized>=0.33?'HIGH':'MEDIUM')};
+        if(s.code==='AMT_DEV'){ const dev=Math.round((s.raw_value/Math.max(s.baseline_value,1)-1)*100);
+          v.current=this.inr(s.raw_value); v.baseline=this.inr(s.baseline_value)+' median'; v.deviation=(dev>=0?'+':'')+dev+'%'; }
+        else if(s.code==='VEL_1H'){ v.current=s.raw_value+' txns / hour'; v.baseline='≈ '+s.baseline_value+' / hour';
+          v.deviation=s.baseline_value>0 ? Math.round(s.raw_value/s.baseline_value)+'×' : s.raw_value+'× baseline'; }
+        else if(s.code==='AUTH_FAIL'){ v.current=s.raw_value+' failures / 10 min'; v.baseline='≈ 0 historically';
+          v.deviation=s.raw_value>0?'new':'—'; }
+        else if(s.code==='DEV_NEW'){ v.current='NEW device'; v.baseline=(cust.known_device_ids||[]).join(', ')||'none on file';
+          v.deviation='unrecognised'; }
+        else if(s.code==='GEO_DIST'){ v.current=Math.round(s.raw_value)+' km from home'; v.baseline='within ~'+Math.round(s.baseline_value)+' km';
+          v.deviation=Math.round(s.raw_value/Math.max(s.baseline_value,1))+'× radius'; }
+        else if(s.code==='TIME_ODD'){ v.current=String(Math.round(s.raw_value)).padStart(2,'0')+':00';
+          v.baseline='active '+(cust.active_hour_start??'?')+':00–'+(cust.active_hour_end??'?')+':00'; v.deviation='off-hours'; }
+        else { v.current=s.raw_value; v.baseline=s.baseline_value; v.deviation='—'; }
+        return v;
+      });
+    },
+    get plainHeadline(){
+      const d=this.detail; if(!d) return '';
+      const rules=(d.assessment.rules_fired||[]).map(r=>r.code);
+      if(rules.includes('R_MULTI_CUSTOMER_DEVICE') || this.ringCustomers>0) return 'Suspected account takeover with fraud-ring activity';
+      if(rules.includes('R_IMPOSSIBLE_TRAVEL')) return 'Suspected account takeover — impossible travel';
+      if(d.transaction.scenario_label) return 'Suspected account takeover';
+      return 'Elevated transaction risk';
+    },
+    get plainSubhead(){
+      const d=this.detail; if(!d) return '';
+      const bits=[];
+      const s=Object.fromEntries((d.assessment.signals||[]).map(x=>[x.code,x]));
+      if(s.AMT_DEV?.triggered) bits.push(this.inr(d.transaction.amount_paise)+' vs '+this.inr(d.customer.amount_median_paise)+' normal');
+      if(s.DEV_NEW?.triggered) bits.push('new device');
+      if(s.GEO_DIST?.triggered) bits.push(Math.round(s.GEO_DIST.raw_value)+' km from '+d.customer.home_city);
+      if(s.AUTH_FAIL?.triggered) bits.push(s.AUTH_FAIL.raw_value+' failed OTP attempts');
+      if(this.ringCustomers>0) bits.push('device shared with '+this.ringCustomers+' other customers');
+      return bits.join(' · ');
+    },
 
     // ---- format ----
-    inr(p){ return '₹'+(p/100).toLocaleString('en-IN',{maximumFractionDigits:0}); },
-    pct(n,d){ return Math.min(100, Math.round(100*n/(d||1))); },
-    fmt(s){ const d=new Date(s); return d.toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); },
+    n(v){ return v==null ? '—' : Number(v).toLocaleString('en-IN'); },
+    inr(p){ return '₹'+Math.round(p/100).toLocaleString('en-IN'); },
+    pct(a,b){ return Math.min(100, Math.round(100*a/(b||1))); },
+    bandColor(b){ return BAND_COLOR[b]||'#7c90a8'; },
+    actionLabel(a){ return ACTION_LABEL[a]||a||'—'; },
+    statusLabel(s){ return STATUS_LABEL[s]||s; },
+    auditLabel(a){ return AUDIT_LABEL[a]||a.replace(/_/g,' '); },
+    queueHeadline(c){ return c.band==='CRITICAL' ? 'High-value transaction, new device, unusual location' : 'Elevated risk signals'; },
+    fmt(s){ return new Date(s).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); },
+    hm(s){ return new Date(s).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}); },
     clock(s){ return new Date(s).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'}); },
-  }
+    ago(s){ const d=(Date.now()-new Date(s))/1000; if(d<60)return 'just now'; if(d<3600)return Math.floor(d/60)+'m ago';
+      if(d<86400)return Math.floor(d/3600)+'h ago'; return Math.floor(d/86400)+'d ago'; },
+  };
 }
 </script>
-<style>[x-cloak]{display:none!important}</style>
 </body>
 </html>
