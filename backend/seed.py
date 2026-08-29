@@ -54,15 +54,12 @@ FIRST = ["Aarav", "Vivaan", "Aditya", "Diya", "Ananya", "Ishaan", "Kabir", "Sara
 LAST = ["Sharma", "Verma", "Iyer", "Nair", "Reddy", "Gupta", "Bose", "Khan",
         "Patel", "Mehta", "Rao", "Das"]
 
-_ALL_TABLES = (
-    AgentFinding, AgentRun, CaseEvidence, Decision, Case, RiskSignal, RiskAssessment,
-    AuthEvent, Transaction, Customer, AuditLog,
-)
-
-
 def _wipe(db: Session) -> None:
-    for tbl in _ALL_TABLES:
-        db.execute(delete(tbl))
+    from .db import Base
+
+    # Delete in reverse foreign-key dependency order so constraints never trip.
+    for table in reversed(Base.metadata.sorted_tables):
+        db.execute(delete(table))
     db.flush()
 
 
