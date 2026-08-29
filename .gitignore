@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+*.egg-info/
+
+# Secrets
+.env
+
+# Database
+*.db
+*.db-wal
+*.db-shm
+
+# Editor / OS
+.vscode/
+.DS_Store
+Thumbs.db
