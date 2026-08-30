@@ -56,7 +56,10 @@ def health() -> HealthOut:
         status="ok" if db_ok else "degraded",
         db=db_ok,
         llm_configured=settings.llm_configured,
-        model=settings.vigil_model,
+        # Provider-qualified label - "Gemini <model>" / "Claude <model>" only when
+        # that provider is actually active, else "engine-only fallback". Never
+        # implies a live model when none is configured.
+        model=settings.active_model_label,
     )
 
 

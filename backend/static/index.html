@@ -62,7 +62,7 @@
   <span class="chip mono" :class="health.llm_configured ? 'band-LOW' : 'band-MEDIUM'"
         :style="`border-color:${health.llm_configured ? '#12352a' : '#3a2f12'}`">
     <span class="dot" style="margin:0" :class="health.llm_configured ? 'bg-LOW' : 'bg-MEDIUM'"></span>
-    <span x-text="health.llm_configured ? ('AI: '+health.model) : 'AI: engine-only fallback (no API key)'"></span>
+    <span x-text="health.llm_configured ? ('AI: '+health.model) : 'AI: engine-only fallback'"></span>
   </span>
   <div class="ml-auto flex items-center gap-2">
     <button class="btn" @click="reset()" :disabled="busy">Reset demo</button>
@@ -434,7 +434,7 @@
               </div>
 
               <div x-show="lastRun.mode!=='llm'" class="text-[11px] band-MEDIUM">
-                No API key configured — this is a deterministic engine-only investigation, not an LLM.
+                Engine-only fallback — this is a deterministic investigation, not a live model. No LLM call was made.
                 <template x-if="lastRun.failure_reason"><span x-text="' ('+lastRun.failure_reason+')'"></span></template>
               </div>
 

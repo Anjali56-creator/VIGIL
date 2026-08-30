@@ -9,6 +9,11 @@ from __future__ import annotations
 import os
 
 os.environ.setdefault("DATABASE_URL", "sqlite:///./_test_vigil.db")
+# This end-to-end suite exercises the deterministic engine-only path. Force it
+# regardless of any provider key in a local .env so it never makes a live call
+# and its mode=="fallback" assertions stay valid.
+os.environ["GEMINI_API_KEY"] = ""
+os.environ["ANTHROPIC_API_KEY"] = ""
 
 import pytest
 from fastapi.testclient import TestClient

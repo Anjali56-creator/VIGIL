@@ -1,9 +1,10 @@
 fastapi==0.115.6
 uvicorn[standard]==0.34.0
-pydantic==2.10.4
+pydantic==2.13.5
 pydantic-settings==2.7.0
 SQLAlchemy==2.0.36
 anthropic==0.42.0
+google-genai==2.20.0
 numpy==2.2.1
 python-dateutil==2.9.0.post0
 httpx==0.28.1

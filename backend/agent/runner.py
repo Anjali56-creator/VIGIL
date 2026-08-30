@@ -86,7 +86,7 @@ def _finish(db: Session, run: AgentRun, case: Case, inv: Investigation, ledger: 
     concurs = inv.concurs_with_engine and inv.agent_risk_view == engine_band
     run.status = "COMPLETED" if mode == "llm" else "FALLBACK"
     run.mode = mode
-    run.model = settings.vigil_model if mode == "llm" else "engine-only"
+    run.model = settings.active_model_label if mode == "llm" else "engine-only"
     run.finished_at = now_ist()
     run.latency_ms = int((time.perf_counter() - t0) * 1000)
     run.input_tokens, run.output_tokens = usage
@@ -141,11 +141,16 @@ def investigate(db: Session, case: Case) -> AgentRun:
            detail={"run_id": run.id, "llm_configured": settings.llm_configured})
     db.flush()
 
-    if not settings.llm_configured:
-        return _run_fallback(db, case, run, t0, reason="no ANTHROPIC_API_KEY configured")
+    provider = settings.active_provider
+    if provider is None:
+        return _run_fallback(
+            db, case, run, t0,
+            reason="no live LLM provider configured (set GEMINI_API_KEY or ANTHROPIC_API_KEY)",
+        )
 
+    runner = _run_gemini if provider == "gemini" else _run_anthropic
     try:
-        return _run_llm(db, case, run, t0)
+        return runner(db, case, run, t0)
     except Exception as exc:  # noqa: BLE001 - demo must degrade, not break
         # Drop any partial state from the failed LLM attempt, keep the run row, fall back.
         for ev in db.scalars(select(CaseEvidence).where(CaseEvidence.run_id == run.id)):
@@ -153,10 +158,13 @@ def investigate(db: Session, case: Case) -> AgentRun:
         for f in db.scalars(select(AgentFinding).where(AgentFinding.run_id == run.id)):
             db.delete(f)
         db.flush()
-        return _run_fallback(db, case, run, t0, reason=f"LLM error: {type(exc).__name__}: {exc}")
+        return _run_fallback(
+            db, case, run, t0,
+            reason=f"{provider} error: {type(exc).__name__}: {exc}",
+        )
 
 
-def _run_llm(db: Session, case: Case, run: AgentRun, t0: float) -> AgentRun:
+def _run_anthropic(db: Session, case: Case, run: AgentRun, t0: float) -> AgentRun:
     from anthropic import Anthropic
 
     customer = db.get(Customer, case.customer_id)
@@ -253,6 +261,187 @@ def _run_llm(db: Session, case: Case, run: AgentRun, t0: float) -> AgentRun:
                     break
         except Exception:  # noqa: BLE001 - keep the first result if repair fails
             pass
+
+    return _finish(db, run, case, investigation, ledger, mode="llm", t0=t0, usage=(in_tok, out_tok))
+
+
+# --------------------------------------------------------------------------- Gemini
+def _gemini_client():
+    """Indirection point so tests can substitute a fake client (no network)."""
+    from google import genai
+
+    return genai.Client(api_key=settings.gemini_api_key)
+
+
+_GEMINI_DROP_KEYS = {"default", "additionalProperties", "title", "$schema"}
+
+
+def _clean_schema(node):
+    """Reduce a JSON-Schema dict to the subset Gemini accepts as
+    `parameters_json_schema` - no defaults, no additionalProperties, no titles."""
+    if isinstance(node, dict):
+        return {k: _clean_schema(v) for k, v in node.items() if k not in _GEMINI_DROP_KEYS}
+    if isinstance(node, list):
+        return [_clean_schema(v) for v in node]
+    return node
+
+
+def _gemini_read_tools():
+    """The five read-only investigation tools as Gemini function declarations.
+
+    `submit_investigation` is deliberately NOT a tool here - the final structured
+    Investigation is produced via Gemini structured output (`response_schema=
+    Investigation`), so the schema contract is identical to the Anthropic path and
+    the model has no write-capable tool of any kind.
+    """
+    from google.genai import types
+
+    decls = []
+    for t in tool_schemas():
+        schema = _clean_schema(t["input_schema"])
+        params = schema if schema.get("properties") else None
+        decls.append(types.FunctionDeclaration(
+            name=t["name"], description=t["description"], parameters_json_schema=params,
+        ))
+    return [types.Tool(function_declarations=decls)]
+
+
+def _parts(resp):
+    try:
+        return list(resp.candidates[0].content.parts or [])
+    except (AttributeError, IndexError, TypeError):
+        return []
+
+
+def _jsonable(payload: dict) -> dict:
+    """Guarantee the function-response payload is plain JSON primitives."""
+    return json.loads(json.dumps(payload, default=str))
+
+
+def _gemini_submit(client, contents, violations):
+    """One structured-output call: Gemini emits the final Investigation JSON.
+
+    Returns an `Investigation` or None. Uses `response_schema=Investigation` so the
+    output contract is exactly the one the grounding validator expects.
+    """
+    from google.genai import types
+
+    msg = ("Now output the final Investigation as JSON. Cite only EV ids that the "
+           "tools returned.")
+    if violations:
+        msg = ("Grounding validation failed. Fix ONLY these issues and output a "
+               "corrected Investigation JSON:\n- " + "\n- ".join(violations[:8])
+               + "\nUse only evidence ids that tools returned; put exact tool numbers "
+               "in observed/baseline.")
+    convo = [*contents, types.Content(role="user", parts=[types.Part.from_text(text=msg)])]
+    resp = client.models.generate_content(
+        model=settings.gemini_model, contents=convo,
+        config=types.GenerateContentConfig(
+            system_instruction=SYSTEM,
+            response_mime_type="application/json",
+            response_schema=Investigation,
+            temperature=0.0,
+        ),
+    )
+    parsed = getattr(resp, "parsed", None)
+    if isinstance(parsed, Investigation):
+        return parsed
+    if isinstance(parsed, dict):
+        return Investigation.model_validate(parsed)
+    text = getattr(resp, "text", None)
+    return Investigation.model_validate_json(text) if text else None
+
+
+def _run_gemini(db: Session, case: Case, run: AgentRun, t0: float) -> AgentRun:
+    from google.genai import types
+
+    customer = db.get(Customer, case.customer_id)
+    txn = db.get(Transaction, case.transaction_id)
+    tctx = ToolContext(db=db, txn=txn, customer=customer)
+    ledger = _Ledger(db, case, run)
+
+    client = _gemini_client()
+    tool_cfg = types.GenerateContentConfig(
+        system_instruction=SYSTEM,
+        tools=_gemini_read_tools(),
+        temperature=0.0,
+        # We drive the tool loop ourselves so every call is logged and every
+        # returned value is written to the evidence ledger before it can be cited.
+        automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
+    )
+
+    user0 = (
+        f"Investigate case {case.id}. Transaction id: {txn.id}. "
+        f"Customer id: {customer.id}. The engine opened this case at score "
+        f"{case.score_at_open} ({case.band}). Use the read-only tools to gather "
+        f"evidence; you will then be asked to submit a structured Investigation."
+    )
+    contents = [types.Content(role="user", parts=[types.Part.from_text(text=user0)])]
+    tool_log: list[dict] = []
+    in_tok = out_tok = 0
+    seq = 0
+
+    def _acc(resp) -> None:
+        nonlocal in_tok, out_tok
+        um = getattr(resp, "usage_metadata", None)
+        if um:
+            in_tok += getattr(um, "prompt_token_count", 0) or 0
+            out_tok += getattr(um, "candidates_token_count", 0) or 0
+
+    for _ in range(MAX_TOOL_ITERS):
+        resp = client.models.generate_content(
+            model=settings.gemini_model, contents=contents, config=tool_cfg,
+        )
+        _acc(resp)
+        parts = _parts(resp)
+        contents.append(types.Content(role="model", parts=parts))
+        calls = [p.function_call for p in parts if getattr(p, "function_call", None)]
+        if not calls:
+            break
+
+        fr_parts = []
+        for fc in calls:
+            seq += 1
+            name = fc.name
+            args = dict(fc.args or {})
+            fn = REGISTRY.get(name)
+            if not fn:
+                fr_parts.append(types.Part.from_function_response(
+                    name=name, response={"error": f"unknown tool {name}"}))
+                continue
+            tstart = time.perf_counter()
+            try:
+                tr = fn(tctx, **args)
+            except Exception as e:  # noqa: BLE001
+                fr_parts.append(types.Part.from_function_response(
+                    name=name, response={"error": f"tool error: {e}"}))
+                continue
+            ms = int((time.perf_counter() - tstart) * 1000)
+            ev_refs = ledger.add(tr.evidence, name)
+            fr_parts.append(types.Part.from_function_response(
+                name=name, response=_jsonable({"data": tr.data, "evidence": ev_refs})))
+            tool_log.append({"seq": seq, "tool": name, "args": args,
+                             "summary": _summarize(name, tr.data), "rows": _rows(tr.data), "ms": ms})
+        contents.append(types.Content(role="user", parts=fr_parts))
+
+    run.tool_log = tool_log
+    run.tool_call_count = len(tool_log)
+
+    investigation = _gemini_submit(client, contents, None)
+    if investigation is None:
+        raise RuntimeError("Gemini did not return a parseable Investigation")
+
+    # ---- grounding + one repair turn (same policy as the Anthropic path) ----
+    grounding = validate(db, txn, customer, investigation, ledger.ids)
+    if grounding.verdict != "PASS" and grounding.violations:
+        try:
+            repaired = _gemini_submit(client, contents, grounding.violations)
+        except Exception:  # noqa: BLE001 - keep the first result if repair fails
+            repaired = None
+        if repaired is not None:
+            investigation = repaired
+            run.tool_log = [*tool_log, {"seq": seq + 1, "tool": "repair",
+                                        "summary": "corrected after grounding failure", "ms": 0}]
 
     return _finish(db, run, case, investigation, ledger, mode="llm", t0=t0, usage=(in_tok, out_tok))
 
