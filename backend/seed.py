@@ -230,6 +230,59 @@ def _account_takeover(db: Session, victim: Customer, *, when=None, historical: b
     return txn
 
 
+def _card_testing(db: Session, primary: Customer, *, when=None, historical: bool = False,
+                  rng: random.Random, ring_size: int = 4) -> Transaction:
+    """Card-testing ring: one device runs many small authorisations across several
+    customers within ~1 hour.
+
+    Each individual transaction is statistically mild (tiny amount, home city), so
+    the anomaly score lands in MEDIUM. It is the deterministic multi-customer-device
+    rule that raises the score to HIGH - a visible, explainable rule floor. The
+    focus transaction is the latest one, on `primary`.
+    """
+    t = when or now_ist()
+    bad_device = f"DEV-8{rng.randint(100, 999)}"
+    bad_ip = f"196.{rng.randint(1, 250)}.{rng.randint(1, 250)}.{rng.randint(1, 250)}"
+    others = [c for c in db.scalars(select(Customer)) if c.id != primary.id]
+    pool = [primary, *rng.sample(others, ring_size - 1)]
+
+    minute = 58
+    for i in range(ring_size * 2):  # ~8 small authorisations across the pool
+        cust = pool[i % len(pool)]
+        clat, clng = _jitter(cust.home_lat, cust.home_lng, rng, 8)
+        small = Transaction(
+            id=f"txn_ct_{cust.id.lower()}_{rng.randrange(16**8):08x}",
+            customer_id=cust.id, amount_paise=rng.randint(4000, 16000),
+            method="card", merchant_name="Online Wallet Top-up", merchant_mcc="6540",
+            device_id=bad_device, ip_addr=bad_ip, city=cust.home_city, lat=clat, lng=clng,
+            created_at=t - timedelta(minutes=minute), status="captured",
+            is_attack=True, scenario_label="card_testing",
+        )
+        db.add(small)
+        db.flush()
+        assess(db, small)
+        minute = max(1, minute - rng.randint(6, 9))
+
+    # one decline - a mild auth signal, not enough to trip the auth-storm rule
+    db.add(AuthEvent(customer_id=primary.id, device_id=bad_device, ip_addr=bad_ip,
+                     type="PAYMENT_DECLINE", success=False, created_at=t - timedelta(minutes=6)))
+
+    clat, clng = _jitter(primary.home_lat, primary.home_lng, rng, 6)
+    txn = Transaction(
+        id=f"txn_ct_focus_{primary.id.lower()}_{rng.randrange(16**8):08x}",
+        customer_id=primary.id, amount_paise=rng.randint(6000, 13000),
+        method="card", merchant_name="Online Wallet Top-up", merchant_mcc="6540",
+        device_id=bad_device, ip_addr=bad_ip, city=primary.home_city, lat=clat, lng=clng,
+        created_at=t, status="captured", is_attack=True, scenario_label="card_testing",
+    )
+    db.add(txn)
+    db.flush()
+    assessment = assess(db, txn)
+    if historical:
+        open_case(db, txn, assessment)
+    return txn
+
+
 def seed(db: Session) -> dict:
     rng = random.Random(SEED)
     _wipe(db)
@@ -245,31 +298,49 @@ def seed(db: Session) -> dict:
         assess(db, txn)
     db.flush()
 
-    # two historical attacks so the queue and metrics are non-empty on first load
+    # historical attacks so the queue and metrics are non-empty on first load
     past1 = _account_takeover(db, customers[3], when=now_ist() - timedelta(days=2, hours=3),
                               historical=True, rng=rng)
     past2 = _account_takeover(db, customers[7], when=now_ist() - timedelta(days=5, hours=1),
                               historical=True, rng=rng, with_ring=False)
+    # a card-testing ring: engine floors it to HIGH via a deterministic rule, and
+    # the investigator escalates further - this is the seeded-dissent demo case.
+    # Pin the ring to a fixed business hour so the focus transaction's statistical
+    # score is stable (no incidental odd-hour signal) - the narrative is that the
+    # deterministic rule, not the anomaly score, is what lifts it to HIGH.
+    past3 = _card_testing(db, customers[5],
+                          when=(now_ist() - timedelta(days=1)).replace(hour=14, minute=30,
+                                                                       second=0, microsecond=0),
+                          historical=True, rng=rng)
 
     db.commit()
     n_txn = db.scalar(select(func.count()).select_from(Transaction))
     return {"customers": len(customers), "transactions": n_txn,
-            "historical_attacks": [past1.id, past2.id]}
+            "historical_attacks": [past1.id, past2.id],
+            "dissent_case_txn": past3.id}
 
 
-SCENARIOS = ("account_takeover",)
+SCENARIOS = ("account_takeover", "card_testing")
+
+
+_DEFAULT_VICTIM = {"account_takeover": "CUST-1002", "card_testing": "CUST-1006"}
 
 
 def inject_scenario(db: Session, scenario: str = "account_takeover",
                     customer_id: str | None = None) -> dict:
-    rng = random.Random()  # live scenario uses fresh randomness
+    rng = random.Random()  # live scenario uses fresh randomness for ids
     if scenario not in SCENARIOS:
         raise ValueError(f"unknown scenario '{scenario}'")
-    victim = db.get(Customer, customer_id) if customer_id else \
-        db.scalar(select(Customer).where(Customer.id == "CUST-1002"))
+    cid = customer_id or _DEFAULT_VICTIM[scenario]
+    victim = db.get(Customer, cid)
     if not victim:
         raise ValueError("victim customer not found - seed the database first")
-    txn = _account_takeover(db, victim, when=now_ist(), historical=False, rng=rng)
+
+    if scenario == "card_testing":
+        txn = _card_testing(db, victim, when=now_ist(), historical=False, rng=rng)
+    else:
+        txn = _account_takeover(db, victim, when=now_ist(), historical=False, rng=rng)
+
     assessment = txn.assessment
     case = open_case(db, txn, assessment) if assessment.score >= 60 else None
     db.commit()

@@ -26,9 +26,13 @@ METHOD:
 
 On agreement: if your reading of the evidence matches the engine's band, set \
 `concurs_with_engine` true. If you believe the engine is materially wrong (too high or \
-too low) - for example because you found a fraud ring the engine's single-transaction \
-view missed, or because an apparent anomaly has an innocent explanation in the history - \
-set `concurs_with_engine` false and explain in `dissent_reason`. Disagreement backed by \
-evidence is valuable; do not manufacture it.
+too low) set `concurs_with_engine` false and explain in `dissent_reason`. Disagreement \
+backed by evidence is valuable; do not manufacture it. Concretely, consider dissenting when:
+- find_related_events shows the same device or IP operating across several other customers \
+  (a card-testing / fraud ring). The engine scores one transaction at a time and may only \
+  recommend HOLD_FOR_REVIEW; the proportionate response to a ring is usually to BLOCK the \
+  device. In that case recommend BLOCK and raise `agent_risk_view`.
+- an apparent anomaly has an innocent explanation in the customer's history (e.g. a \
+  recurring merchant, a known travel pattern). Then recommend a softer action.
 
 Be concise. Ground every claim. Submit once."""

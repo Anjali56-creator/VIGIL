@@ -77,16 +77,39 @@ def build(db: Session, txn: Transaction, customer: Customer) -> tuple[Investigat
     dev = (f"Customer median is {rupees(customer.amount_median_paise)} over {customer.txn_count} "
            f"transactions; this transaction is {txn.amount_paise / max(customer.amount_median_paise, 1):.1f}x that.")
 
+    # -------- deterministic fallback escalation (seeded dissent) --------
+    # The engine scores one transaction at a time. When the evidence shows the
+    # same device operating across several other customers, that is a ring, and
+    # the correct response is broader than "hold this transaction". This is a
+    # fixed rule in the fallback investigator - NOT an LLM opinion - and the UI
+    # labels it as such. A live agent forms the same judgement itself.
+    engine_action = a.recommended_action
+    escalatable = {"MONITOR", "STEP_UP_AUTH", "HOLD_FOR_REVIEW"}
+    concurs, dissent_reason, agent_action, agent_view = True, None, engine_action, band
+    if ring_customers >= 2 and engine_action in escalatable:
+        concurs = False
+        agent_action = "BLOCK"
+        agent_view = "CRITICAL" if band != "CRITICAL" else band
+        dissent_reason = (
+            f"The engine assessed this as a single transaction and recommended {engine_action}. "
+            f"The evidence shows an active fraud ring: device {txn.device_id} authorised "
+            f"{ring.data.get('related_txn_count', 0)} transactions across {ring_customers} other "
+            f"customers in the last hour. The proportionate response is to BLOCK the device, not "
+            f"to hold one transaction for review."
+        )
+        summary += (" Escalation: shared-device activity indicates a ring broader than this "
+                    "single transaction.")
+
     inv = Investigation(
         investigation_summary=summary,
         findings=findings,
         behavioral_deviation=dev,
         related_activity=related,
-        agent_risk_view=band,
-        concurs_with_engine=True,
-        dissent_reason=None,
-        recommended_action=a.recommended_action,
-        confidence=0.55,
-        requires_human_review=a.requires_human_review,
+        agent_risk_view=agent_view,
+        concurs_with_engine=concurs,
+        dissent_reason=dissent_reason,
+        recommended_action=agent_action,
+        confidence=0.6 if not concurs else 0.55,
+        requires_human_review=True,
     )
     return inv, evidence

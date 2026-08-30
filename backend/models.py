@@ -91,6 +91,7 @@ class RiskAssessment(Base):
     engine_version: Mapped[str] = mapped_column(String, default="1.0")
     rules_fired: Mapped[list] = mapped_column(JSON, default=list)
     floor_applied: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    floor_rule: Mapped[str | None] = mapped_column(String, nullable=True)  # code of the governing rule
     recommended_action: Mapped[str] = mapped_column(String)
     requires_human_review: Mapped[bool] = mapped_column(Boolean, default=False)
     latency_ms: Mapped[int] = mapped_column(Integer, default=0)
@@ -144,8 +145,10 @@ class CaseEvidence(Base):
     agent can only cite ids that already exist. This is the anti-hallucination core."""
     __tablename__ = "case_evidence"
 
-    id: Mapped[str] = mapped_column(String, primary_key=True)  # EV-001 (unique per case)
-    case_id: Mapped[str] = mapped_column(ForeignKey("cases.id"), index=True)
+    # EV-nnn, numbered per case. The id is only unique within a case, so the
+    # primary key is composite (case_id, id) - two cases can both have an EV-001.
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    case_id: Mapped[str] = mapped_column(ForeignKey("cases.id"), primary_key=True, index=True)
     run_id: Mapped[int] = mapped_column(ForeignKey("agent_runs.id"))
     source_tool: Mapped[str] = mapped_column(String)
     source_ref: Mapped[str] = mapped_column(String, default="")

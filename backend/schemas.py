@@ -58,6 +58,7 @@ class AssessmentOut(ORMModel):
     base_score: int
     rules_fired: list
     floor_applied: int | None
+    floor_rule: str | None
     recommended_action: str
     requires_human_review: bool
     latency_ms: int

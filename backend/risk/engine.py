@@ -61,7 +61,12 @@ def assess(db: Session, txn: Transaction) -> RiskAssessment:
     shares = fusion.leave_one_out(sigs)
 
     hits = rules.evaluate(ctx, _device_peers(db, txn))
-    floor = max((h.floor for h in hits), default=None)
+    # The governing floor is the highest floor among the deterministic rules that
+    # fired. The final score is never allowed below it - a critical rule can only
+    # raise the score, never be averaged away by the statistical layer.
+    governing = max(hits, key=lambda h: h.floor, default=None)
+    floor = governing.floor if governing else None
+    floor_rule = governing.code if governing else None
     score = max(base_score, floor) if floor is not None else base_score
     score = max(0, min(100, score))
     band = band_for(score)
@@ -80,6 +85,7 @@ def assess(db: Session, txn: Transaction) -> RiskAssessment:
         engine_version=ENGINE_VERSION,
         rules_fired=[{"code": h.code, "floor": h.floor, "detail": h.detail} for h in hits],
         floor_applied=floor,
+        floor_rule=floor_rule,
         recommended_action=action,
         requires_human_review=needs_review,
         latency_ms=latency_ms,

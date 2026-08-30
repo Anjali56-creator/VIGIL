@@ -287,13 +287,13 @@
       <!-- ---------- MIDDLE: score + why flagged ---------- -->
       <div class="space-y-4">
         <div class="panel p-4">
-          <div class="lbl mb-2">Risk score — computed by the deterministic engine</div>
+          <div class="lbl mb-2">Risk score</div>
           <div class="flex items-center gap-5">
-            <svg width="128" height="128" viewBox="0 0 128 128" class="flex-none">
+            <svg width="120" height="120" viewBox="0 0 128 128" class="flex-none">
               <circle cx="64" cy="64" r="52" fill="none" stroke="#182234" stroke-width="14"/>
               <circle cx="64" cy="64" r="52" fill="none" stroke-width="14" stroke-linecap="round"
                 :stroke="bandColor(detail.assessment.band)"
-                :stroke-dasharray="326.7"
+                stroke-dasharray="326.7"
                 :stroke-dashoffset="326.7*(1-detail.assessment.score/100)"
                 transform="rotate(-90 64 64)"/>
               <text x="64" y="60" text-anchor="middle" font-size="30" font-weight="700" :fill="bandColor(detail.assessment.band)"
@@ -304,28 +304,69 @@
               <div class="text-xl font-bold" :class="'band-'+detail.assessment.band" x-text="detail.assessment.band"></div>
               <div class="text-xs text-slate-400 mt-1">engine recommends</div>
               <div class="text-sm font-semibold" x-text="actionLabel(detail.assessment.recommended_action)"></div>
-              <div class="text-[11px] text-slate-500 mt-2" x-text="'scored in '+detail.assessment.latency_ms+' ms · engine v'+(detail.assessment.engine_version||'1.0')"></div>
+              <div class="text-[11px] text-slate-500 mt-2" x-text="'scored in '+detail.assessment.latency_ms+' ms'"></div>
             </div>
           </div>
 
-          <template x-if="detail.assessment.rules_fired?.length">
-            <div class="mt-3 rounded-lg p-2" style="background:#1c130a">
-              <div class="lbl band-HIGH mb-1">Deterministic rules fired</div>
-              <template x-for="r in detail.assessment.rules_fired" :key="r.code">
-                <div class="text-xs band-HIGH mb-1">
+          <!-- 4-LAYER RISK DECISION BREAKDOWN -->
+          <div class="mt-4 rounded-lg border border-line overflow-hidden text-xs">
+            <div class="lbl px-3 py-2" style="background:#0d1521">How this score was reached</div>
+
+            <div class="px-3 py-2 border-t border-line">
+              <div class="flex justify-between"><span><b>1.</b> Anomaly / statistical signals</span>
+                <span class="mono" x-text="'base '+detail.assessment.base_score"></span></div>
+              <div class="text-[11px] text-slate-500" x-text="factorViews.length+' of 6 detectors triggered — noisy-OR fusion'"></div>
+            </div>
+
+            <div class="px-3 py-2 border-t border-line">
+              <div class="flex justify-between">
+                <span><b>2.</b> Deterministic rules</span>
+                <span class="mono" x-text="detail.assessment.floor_applied!=null ? ('floor '+detail.assessment.floor_applied) : 'none fired'"></span>
+              </div>
+              <template x-for="r in (detail.assessment.rules_fired||[])" :key="r.code">
+                <div class="text-[11px] band-HIGH mt-1">
                   ⚠ <span class="mono" x-text="r.code.replace('R_','')"></span>
-                  <span class="text-slate-500" x-text="'(floor '+r.floor+')'"></span>
-                  <div class="text-[11px] text-slate-300" x-text="r.detail"></div>
+                  <span x-show="r.code===detail.assessment.floor_rule" class="text-slate-500">(governing)</span>
+                  <div class="text-slate-300" x-text="r.detail"></div>
                 </div>
               </template>
-              <div class="text-[11px] text-slate-500"
-                x-show="detail.assessment.score > detail.assessment.base_score"
-                x-text="'statistical score '+detail.assessment.base_score+' → '+detail.assessment.score+' (raised by rule floor)'"></div>
-              <div class="text-[11px] text-slate-500"
-                x-show="detail.assessment.score <= detail.assessment.base_score"
-                x-text="'statistical score '+detail.assessment.base_score+' already exceeds the rule floor'"></div>
             </div>
-          </template>
+
+            <div class="px-3 py-2 border-t border-line" style="background:#0d1521">
+              <div class="flex justify-between font-semibold">
+                <span><b>3.</b> Engine score = max(statistical, rule floor)</span>
+                <span class="mono" :class="'band-'+detail.assessment.band"
+                  x-text="detail.assessment.score+' '+detail.assessment.band"></span>
+              </div>
+              <div class="text-[11px] mt-0.5" :class="detail.assessment.score>detail.assessment.base_score ? 'band-HIGH':'text-slate-500'"
+                x-text="detail.assessment.score>detail.assessment.base_score
+                  ? ('rule '+(detail.assessment.floor_rule||'').replace('R_','')+' raised the score '+detail.assessment.base_score+' → '+detail.assessment.score)
+                  : (detail.assessment.floor_applied!=null ? 'statistical score already above the rule floor' : 'no rules fired — score is purely statistical')"></div>
+            </div>
+
+            <div class="px-3 py-2 border-t border-line">
+              <div class="flex justify-between">
+                <span><b>4.</b> AI assessment <span class="text-slate-500">(advisory)</span></span>
+                <span class="mono" x-text="lastRun ? (actionLabel(lastRun.recommended_action)) : 'not yet run'"></span>
+              </div>
+              <div class="text-[11px] mt-0.5" x-show="lastRun"
+                :class="lastRun.concurs_with_engine ? 'text-slate-500':'band-HIGH'"
+                x-text="lastRun
+                  ? (lastRun.concurs_with_engine ? ('concurs with engine · '+(lastRun.mode==='llm'?lastRun.model:'engine-only fallback'))
+                     : ('⚡ disagrees with engine · '+(lastRun.mode==='llm'?lastRun.model:'deterministic fallback escalation')))
+                  : ''"></div>
+            </div>
+
+            <div class="px-3 py-2 border-t border-line" style="background:#0d1521">
+              <div class="flex justify-between font-semibold">
+                <span><b>5.</b> Final decision <span class="text-slate-500">— analyst</span></span>
+                <span class="mono" :class="decided ? 'band-LOW':'band-MEDIUM'"
+                  x-text="decided ? actionLabel(detail.decisions[detail.decisions.length-1].final_action) : 'pending'"></span>
+              </div>
+              <div class="text-[11px] text-slate-500 mt-0.5"
+                x-text="decided ? ('by '+detail.decisions[detail.decisions.length-1].actor) : 'the analyst is the final decision-maker'"></div>
+            </div>
+          </div>
         </div>
 
         <div class="panel p-4">
@@ -435,13 +476,28 @@
                 </template>
               </div>
 
-              <div class="rounded-lg p-2" style="background:#0d1521">
-                <div class="text-xs">Engine: <b x-text="actionLabel(engineAction)"></b></div>
-                <div class="text-xs mt-0.5">Agent: <b x-text="actionLabel(lastRun.recommended_action)"></b>
-                  <span x-show="!lastRun.concurs_with_engine" class="band-HIGH">⚡ dissents from engine</span></div>
-                <div class="text-[11px] text-slate-400 mt-1" x-show="lastRun.dissent_reason" x-text="lastRun.dissent_reason"></div>
-                <div class="text-[11px] text-slate-500 mt-1"
-                  x-text="'confidence '+Math.round(lastRun.confidence*100)+'% · '+(lastRun.requires_human_review ? 'human review required':'no review required')"></div>
+              <div class="rounded-lg p-2 border" :class="lastRun.concurs_with_engine ? 'border-line' : 'bd-HIGH'"
+                   style="background:#0d1521">
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                  <div><span class="lbl">Engine recommends</span><div class="font-semibold" x-text="actionLabel(engineAction)"></div></div>
+                  <div><span class="lbl">Agent advises</span><div class="font-semibold" x-text="actionLabel(lastRun.recommended_action)"></div></div>
+                </div>
+                <div x-show="!lastRun.concurs_with_engine" class="mt-2 pt-2 border-t border-line">
+                  <div class="text-xs band-HIGH font-semibold">⚡ The AI investigator disagrees with the engine</div>
+                  <div class="text-[11px] text-slate-300 mt-1" x-text="lastRun.dissent_reason"></div>
+                  <div class="text-[11px] mt-1" :class="lastRun.mode==='llm' ? 'band-LOW':'band-MEDIUM'"
+                    x-text="lastRun.mode==='llm'
+                      ? ('Produced by the live agent ('+lastRun.model+').')
+                      : 'Demo / fallback: this is the deterministic fallback investigator\'s fixed escalation rule (ring detected → block the device), NOT an LLM. With an API key configured the live agent forms this judgement itself.'"></div>
+                </div>
+                <div x-show="lastRun.concurs_with_engine" class="text-[11px] text-slate-500 mt-1">
+                  Agent concurs with the engine's assessment.
+                </div>
+                <div class="text-[11px] text-slate-500 mt-2">
+                  <span x-text="'confidence '+Math.round(lastRun.confidence*100)+'%'"></span> ·
+                  <span x-text="lastRun.requires_human_review ? 'human review required' : 'no review required'"></span> ·
+                  <span class="band-MEDIUM">the analyst makes the final call</span>
+                </div>
               </div>
             </div>
           </template>
@@ -629,19 +685,23 @@ function vigil() {
     get plainHeadline(){
       const d=this.detail; if(!d) return '';
       const rules=(d.assessment.rules_fired||[]).map(r=>r.code);
-      if(rules.includes('R_MULTI_CUSTOMER_DEVICE') || this.ringCustomers>0) return 'Suspected account takeover with fraud-ring activity';
+      const label=d.transaction.scenario_label;
+      if(label==='card_testing') return 'Suspected card-testing fraud ring';
       if(rules.includes('R_IMPOSSIBLE_TRAVEL')) return 'Suspected account takeover — impossible travel';
-      if(d.transaction.scenario_label) return 'Suspected account takeover';
+      if(rules.includes('R_MULTI_CUSTOMER_DEVICE') || this.ringCustomers>0) return 'Suspected account takeover with fraud-ring activity';
+      if(label) return 'Suspected account takeover';
       return 'Elevated transaction risk';
     },
     get plainSubhead(){
       const d=this.detail; if(!d) return '';
       const bits=[];
       const s=Object.fromEntries((d.assessment.signals||[]).map(x=>[x.code,x]));
+      if(d.transaction.scenario_label==='card_testing')
+        bits.push('many small authorisations on one device');
       if(s.AMT_DEV?.triggered) bits.push(this.inr(d.transaction.amount_paise)+' vs '+this.inr(d.customer.amount_median_paise)+' normal');
       if(s.DEV_NEW?.triggered) bits.push('new device');
       if(s.GEO_DIST?.triggered) bits.push(Math.round(s.GEO_DIST.raw_value)+' km from '+d.customer.home_city);
-      if(s.AUTH_FAIL?.triggered) bits.push(s.AUTH_FAIL.raw_value+' failed OTP attempts');
+      if(s.AUTH_FAIL?.triggered) bits.push(s.AUTH_FAIL.raw_value+' failed / declined attempts');
       if(this.ringCustomers>0) bits.push('device shared with '+this.ringCustomers+' other customers');
       return bits.join(' · ');
     },
