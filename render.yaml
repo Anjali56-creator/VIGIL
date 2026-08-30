@@ -1,0 +1,23 @@
+# Render blueprint for Vigil (hackathon demo).
+# Single FastAPI process: serves the API and the one-file SPA on the same origin.
+# SQLite lives on the container's ephemeral disk and is auto-seeded on startup;
+# "Reset demo" re-seeds deterministically at any time.
+services:
+  - type: web
+    name: vigil
+    runtime: python
+    plan: free
+    branch: master
+    buildCommand: pip install -r requirements.txt
+    # One worker only - concurrent workers on one SQLite file cause lock errors.
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      # Optional. Leave unset to run the deterministic engine-only fallback.
+      # If you add it, set it as a secret in the Render dashboard - never commit it.
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.6-flash
+      - key: PYTHON_VERSION
+        value: 3.11.9

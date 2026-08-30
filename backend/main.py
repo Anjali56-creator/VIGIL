@@ -23,6 +23,19 @@ STATIC_DIR = Path(__file__).parent / "static"
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     init_db()
+    # On a fresh deployment the tables exist but are empty, which makes the
+    # dashboard look broken until someone clicks "Reset demo". Seed once if the
+    # database is empty; an already-seeded DB is left untouched. "Reset demo"
+    # still re-seeds deterministically at any time.
+    from sqlalchemy import func, select
+
+    from .db import SessionLocal
+    from .models import Customer
+    from .seed import seed
+
+    with SessionLocal() as db:
+        if not db.scalar(select(func.count()).select_from(Customer)):
+            seed(db)
     yield
 
 
