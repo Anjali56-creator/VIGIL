@@ -1,0 +1,720 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Vigil — Complete Working Flow Guide</title>
+<style>
+  @page { size: A4; margin: 16mm 14mm 18mm; }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { font: 10pt/1.5 "Segoe UI", system-ui, -apple-system, Roboto, sans-serif; color: #1b232f; margin: 0; }
+  h1 { font-size: 22pt; margin: 0 0 6pt; color: #0f2138; }
+  h2 { font-size: 14pt; margin: 0 0 9pt; padding-bottom: 4pt; border-bottom: 2.5px solid #1d4ed8; color: #0f2138; }
+  h3 { font-size: 11pt; margin: 12pt 0 4pt; color: #1c3a63; }
+  h4 { font-size: 10pt; margin: 9pt 0 3pt; color: #33465e; }
+  p { margin: 0 0 7pt; }
+  ul, ol { margin: 0 0 8pt; padding-left: 17pt; }
+  li { margin: 0 0 3pt; }
+  code { background: #eef1f6; padding: 1px 4px; border-radius: 3px; font-size: 8.7pt; font-family: ui-monospace, Consolas, monospace; }
+  .lead { font-size: 10.5pt; color: #44505f; }
+  .sec { page-break-inside: avoid; margin-bottom: 14pt; }
+  .pagebreak { page-break-before: always; }
+  .box { border: 1px solid #d6dde6; border-radius: 8px; padding: 9pt 11pt; background: #fafbfd; margin: 0 0 8pt; }
+  .box.ok { background: #eafaf1; border-color: #93d6b0; }
+  .box.warn { background: #fff6e6; border-color: #efc576; }
+  .box.click { background: #eef4ff; border-color: #9dbdf5; }
+  .flow { font-family: ui-monospace, Consolas, monospace; font-size: 8.3pt; line-height: 1.42; background: #0f1b2d; color: #dce6f2; padding: 9pt 11pt; border-radius: 8px; white-space: pre; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; margin: 0 0 9pt; font-size: 8.8pt; }
+  th, td { text-align: left; border: 1px solid #d0d8e1; padding: 5pt 7pt; vertical-align: top; }
+  th { background: #eef2f8; font-weight: 650; }
+  .shot { width: 100%; border: 1px solid #c7d0dc; border-radius: 6px; margin: 6pt 0 3pt; }
+  .shot.h { width: 62%; }
+  .cap { font-size: 8.2pt; color: #69747f; margin: 0 0 4pt; }
+  .legend { font-size: 8.4pt; color: #33465e; margin: 0 0 10pt; }
+  .legend b { color: #1d4ed8; }
+  .tag { display: inline-block; background: #1d4ed8; color: #fff; font-size: 7.5pt; font-weight: 700; padding: 1px 6px; border-radius: 999px; }
+  .b-LOW{color:#0b8a4e;font-weight:700}.b-MED{color:#b5860b;font-weight:700}.b-HIGH{color:#c2560f;font-weight:700}.b-CRIT{color:#c62828;font-weight:700}
+  .muted { color: #69747f; }
+  .toc { font-size: 9.4pt; }
+  .toc li { margin: 2pt 0; }
+  .foot { margin-top: 6pt; font-size: 8pt; color: #8791a0; border-top: 1px solid #dbe1e9; padding-top: 4pt; }
+  .kv { display: grid; grid-template-columns: 160px 1fr; gap: 2pt 10pt; font-size: 9pt; }
+  .kv div:nth-child(odd) { color: #55606f; }
+  .big { font-size: 12pt; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<!-- ===================== COVER ===================== -->
+<div class="sec" style="text-align:center; padding-top:40pt">
+  <div style="font-size:30pt; font-weight:800; letter-spacing:.18em; color:#1d4ed8">VIGIL</div>
+  <div style="font-size:11pt; color:#55606f; margin-top:4pt">AI Risk Investigator</div>
+  <h1 style="margin-top:36pt">Complete Working Flow Guide</h1>
+  <p class="lead" style="max-width:130mm; margin:8pt auto 0">
+    Open this before a demo. It tells you exactly what to click, why, what happens next, what you are
+    looking at, and what to say — using the <b>actual</b> UI labels, routes, and backend logic of the
+    current build. Every number was verified against a running instance.</p>
+  <div class="box" style="max-width:130mm; margin:24pt auto 0; text-align:left">
+    <b>Vigil in one sentence:</b> a deterministic engine scores every payment 0–100 against that
+    customer's own history and recommends an action; an AI agent (Gemini) investigates and explains the
+    risky ones as an optional second opinion; a human analyst makes the final, audited decision.
+  </div>
+  <p class="muted" style="margin-top:20pt; font-size:8.5pt">Generated from the running application. All data is synthetic. No real customer data.</p>
+</div>
+
+<div class="sec pagebreak">
+  <h2>Table of contents</h2>
+  <ol class="toc">
+    <li>Part 1 — What Vigil actually is</li>
+    <li>Part 2 — Where the transactions come from + what "Run scenario" does</li>
+    <li>Part 3 — The complete step-by-step workflow</li>
+    <li>Part 4 — Button-by-button guide</li>
+    <li>Part 5 — Screen-by-screen explanation (with screenshots)</li>
+    <li>Part 6 — The transaction screen, field by field</li>
+    <li>Part 7 — Every risk signal, in plain English</li>
+    <li>Part 8 — How the risk score is calculated</li>
+    <li>Part 9 — What the AI (Gemini) does</li>
+    <li>Part 10 — The five analyst actions</li>
+    <li>Part 11 — "My Vigil demo — exact clicks"</li>
+    <li>Part 12 — The three (four) demo scenarios</li>
+    <li>Part 13 — How to explain Vigil to a judge (30s / 1m / 2m)</li>
+    <li>Part 14 — Judge questions + accurate answers</li>
+    <li>Part 15 — If something goes wrong during the demo</li>
+    <li>Part 16 — One-page cheat sheet</li>
+    <li>Part 17 — Visual flowchart</li>
+  </ol>
+</div>
+
+<!-- ===================== PART 1 ===================== -->
+<div class="sec pagebreak">
+  <h2>Part 1 — What Vigil actually is</h2>
+  <p>Vigil is a <b>hybrid</b> of three layers with clean boundaries:</p>
+  <table>
+    <tr><th>Layer</th><th>Owns</th><th>Implementation</th></tr>
+    <tr><td><b>Risk engine</b></td><td>the 0–100 <b>score</b> and the recommended action</td>
+      <td><code>backend/risk/</code> — 6 weighted signal detectors → grouped noisy-OR fusion → leave-one-out attribution → 3 rules that impose score floors → a fixed action policy. Deterministic. Hand-set weights.</td></tr>
+    <tr><td><b>AI investigation</b></td><td>the <b>narrative</b>, findings, and a <b>second opinion</b></td>
+      <td><code>backend/agent/</code> — Google <b>Gemini</b> <code>gemini-3.6-flash</code> agentic loop over 5 read-only tools, or a deterministic engine-only fallback. Every number it states is re-checked against the database.</td></tr>
+    <tr><td><b>Human analyst</b></td><td>the <b>decision</b></td>
+      <td><code>backend/services.py</code> — Allow / Monitor / Step-up / Hold / Block, with a mandatory written reason on any override, recorded in an append-only audit trail.</td></tr>
+  </table>
+  <div class="box warn">
+    <b>What Vigil is NOT (say this plainly if asked):</b>
+    <ul style="margin-bottom:0">
+      <li><b>Not machine learning.</b> No trained/loaded model anywhere. <code>numpy</code> is used only for median / percentile / MAD. The score is arithmetic over constants.</li>
+      <li><b>Not a payment interceptor.</b> There is no gateway. "Block", "Hold", etc. write a decision row and change the case status — <code>Transaction.status</code> never changes and no money is actually stopped.</li>
+      <li><b>Not real data.</b> 100% synthetic, generated locally by <code>backend/seed.py</code>.</li>
+    </ul>
+  </div>
+  <h3>Tech stack</h3>
+  <div class="kv">
+    <div>Backend</div><div>FastAPI + SQLAlchemy + SQLite, one process</div>
+    <div>Frontend</div><div>single file <code>backend/static/index.html</code> — Alpine.js + Tailwind via CDN, no build step, served on the same origin</div>
+    <div>AI provider</div><div>Gemini (if <code>GEMINI_API_KEY</code> set) → else Anthropic (if key set) → else deterministic fallback</div>
+    <div>Run locally</div><div><code>uvicorn backend.main:app --port 8000</code> → open <code>http://localhost:8000</code></div>
+  </div>
+</div>
+
+<!-- ===================== PART 2 ===================== -->
+<div class="sec pagebreak">
+  <h2>Part 2 — Where the transactions come from</h2>
+  <p>You never type a transaction. Every transaction on screen is <b>synthetic data the backend
+  generated and wrote to a SQLite database</b>, then read back through the API. There are three
+  sources, all in <code>backend/seed.py</code>:</p>
+  <table>
+    <tr><th>Source</th><th>What it makes</th><th>When it runs</th></tr>
+    <tr><td><code>seed()</code></td><td>12 customers <code>CUST-1001..1012</code> + ~90 days of history each (~1,080 transactions) + 3 scripted historical attacks</td><td>on first startup if the DB is empty (<code>backend/main.py</code>), and on every <b>Reset demo</b></td></tr>
+    <tr><td><code>inject_scenario()</code></td><td>one live scenario built "now" — this is what <b>▶ Run scenario</b> calls</td><td>on <code>POST /api/simulate/scenario</code></td></tr>
+    <tr><td><code>POST /api/transactions</code></td><td>a generic single-transaction ingest</td><td>used by the test suite, not the UI</td></tr>
+  </table>
+  <p>The population (which gives each customer a median amount, home city, known devices, active
+  hours) is <b>deterministic</b> — <code>random.Random(42)</code>. The live scenario uses fresh
+  randomness only for ids and a few numbers within fixed ranges (see Part 12).</p>
+
+  <h3>Worked example — where "Rs 56,393.88 / Kolkata / UPI / Gift Card Store" comes from</h3>
+  <p class="muted">(Your earlier screenshot showed ~Rs 90,476 / 97 — same mechanism, larger random
+  amount from an older multiplier. A current run of the same scenario shows the values below.)</p>
+  <div class="flow">CLICK  "&#9654; Run scenario"   (scenario = "account_takeover")     backend/static/index.html
+   |
+FUNCTION  runScenario()  ->  fetch POST /api/simulate/scenario
+   |
+BACKEND / API  simulate()                                          backend/api/admin.py
+   |            -> inject_scenario(db, "account_takeover", None)    backend/seed.py
+   |               victim  = CUST-1002        (_DEFAULT_VICTIM)
+   |               builder = _account_takeover (_BUILDERS)
+   |
+DATA GENERATION  _account_takeover(db, victim, when=now, rng=random.Random())   backend/seed.py
+   |   far city   = max(CITIES, key = haversine from Pune)  ->  "Kolkata"   (deterministic)
+   |   bad_device = "DEV-9" + randint(100,999)              ->  e.g. DEV-9106
+   |   inserts: 1 "legit prior" txn in Pune  (t - 35 min)   -> makes the Kolkata jump "impossible travel"
+   |            3 OTP_FAIL auth events        (t - 7/5/3 min)
+   |            2 "ring" txns on the same device for 2 random other customers, in Kolkata
+   |            1 FOCUS txn: amount = median * uniform(3.2, 4.2) ; merchant "Gift Card Store" / MCC 5947 ;
+   |                         method "upi" ; ip_is_proxy = True ; city "Kolkata" ;
+   |                         is_attack = True ; scenario_label = "account_takeover"
+   |
+DATABASE  every row is INSERTed into SQLite  (tables: transactions, auth_events)
+   |
+RISK ENGINE  assess(db, focus_txn)                                 backend/risk/engine.py
+   |   signals -> fusion (noisy-OR) -> leave-one-out -> rules -> policy
+   |   writes: risk_assessments (1 row) + risk_signals (6 rows) + audit_log "risk_assessed"
+   |
+RESULT  score 96 >= 60  ->  open_case()  -> cases row "CASE-2026-0004" + audit_log "case_opened"
+   |     db.commit()  -> returns {score:96, band:"CRITICAL", recommended_action:"BLOCK", case_id:"CASE-2026-0004"}
+   |
+SCREEN  runScenario() sees case_id -> openCase("CASE-2026-0004") -> GET /api/cases/CASE-2026-0004
+        -> case_detail() aggregates from the DB -> the 4-step case screen renders</div>
+  <p><b>No AI is involved in any of the above.</b> Gemini only runs later, if you click "Run AI investigation".</p>
+</div>
+
+<!-- ===================== PART 3 ===================== -->
+<div class="sec pagebreak">
+  <h2>Part 3 — The complete step-by-step workflow</h2>
+
+  <h3>STEP 1 — Open Vigil</h3>
+  <div class="kv">
+    <div>What I see</div><div>A "How Vigil works" intro card over a dark dashboard. Behind it: a <b>Start here</b> strip, four scenario cards, KPI tiles, a case queue, a recent-payments list.</div>
+    <div>What it is for</div><div>The dashboard is the operations overview. The intro card is a 6-point summary of the product.</div>
+    <div>What I click</div><div><b>Got it — start the demo</b> (dismisses the card). You can re-open it any time with <b>How Vigil works</b> in the header.</div>
+    <div>What happens</div><div>The card closes; the dashboard is fully visible.</div>
+  </div>
+
+  <h3>STEP 2 — Run a scenario</h3>
+  <div class="kv">
+    <div>What I click</div><div>The <b>scenario dropdown</b> in the header (default "Normal payment") → choose one → <b>▶ Run scenario</b>. Or click one of the four <b>scenario cards</b> on the dashboard.</div>
+    <div>Why</div><div>This is how a transaction enters the demo. The real engine scores it live.</div>
+    <div>What happens (Critical / Fraud ring)</div><div>A case is created (score ≥ 60) and the screen jumps straight into it. A green toast shows the score and case id.</div>
+    <div>What happens (Normal / Suspicious)</div><div>Score is below 60, so <b>no case is opened</b>. The screen shows a read-only "transaction result" page with a banner explaining why no case exists.</div>
+  </div>
+
+  <h3>STEP 3 — Review the transaction (case section 1)</h3>
+  <div class="kv">
+    <div>What I see</div><div>Section <b>1 — THE CASE — WHAT HAPPENED</b>: case id, status, risk band, the amount (large), and <code>method · city · merchant · time</code>, then a plain-English headline and a one-line summary of the specific facts.</div>
+    <div>What I do</div><div>Just read it. This is "what happened".</div>
+  </div>
+
+  <h3>STEP 4 — Check the risk signals (case section 2)</h3>
+  <div class="kv">
+    <div>What I see</div><div>Section <b>2 — WHY IS THIS SUSPICIOUS?</b>: one warning row per triggered signal / fired rule (e.g. <i>Multiple failed attempts</i>, <i>New device</i>, <i>Impossible travel</i>).</div>
+    <div>What I click</div><div>Any warning row → it expands to a plain-English explanation plus <i>now / normal / deviation</i> numbers.</div>
+  </div>
+
+  <h3>STEP 5 — Read the score and the recommendation (case section 3)</h3>
+  <div class="kv">
+    <div>What I see</div><div>Section <b>3 — RISK LEVEL &amp; WHAT VIGIL RECOMMENDS</b>: the score ring + band + a one-line meaning; a <b>"Why this score?"</b> panel (per-signal points that sum to the base, then the rule floors); a clickable <b>Transaction → Risk signals → Risk analysis → Risk score → Recommendation</b> pipeline; then large: <b>VIGIL RECOMMENDS — &lt;action&gt;</b> with a reason.</div>
+    <div>What I click</div><div>Any pipeline stage → a plain explanation of that stage. Optionally "show the exact score calculation" → the 5-layer breakdown.</div>
+  </div>
+
+  <h3>STEP 6 — (optional) Run the AI investigation (case section 4)</h3>
+  <div class="kv">
+    <div>What I click</div><div><b>Run AI investigation</b>.</div>
+    <div>What happens</div><div>Gemini reads the case with read-only tools and writes an evidence-cited summary + a second opinion; every number is re-verified against the database. Takes ~1–3 min on the live model. If Gemini is unavailable it falls back to a deterministic engine-only investigation, clearly badged.</div>
+    <div>Note</div><div>This step is <b>optional</b>. The score and recommendation already exist without it.</div>
+  </div>
+
+  <h3>STEP 7 — Take the decision (case section 4)</h3>
+  <div class="kv">
+    <div>What I see</div><div>Five action buttons. Vigil's recommended one is highlighted and tagged <span class="tag">✓ VIGIL'S PICK</span>. Each button has a one-line consequence.</div>
+    <div>What I click</div><div>An action → (if it differs from Vigil's pick, type a reason) → <b>Confirm decision &amp; close case</b>.</div>
+    <div>What happens</div><div>A <code>decisions</code> row is written, the case status changes (BLOCKED or APPROVED), and an <code>analyst_decision</code> audit entry is appended. The screen shows a green <b>✓ Case resolved</b> panel and the decision buttons disappear.</div>
+  </div>
+
+  <h3>STEP 8 — Reset for the next run</h3>
+  <div class="kv">
+    <div>What I click</div><div><b>Reset demo</b> in the header.</div>
+    <div>What happens</div><div>The database is wiped and re-seeded deterministically. Everything returns to the starting state.</div>
+  </div>
+</div>
+
+<!-- ===================== PART 4 ===================== -->
+<div class="sec pagebreak">
+  <h2>Part 4 — Button-by-button guide</h2>
+  <table>
+    <tr><th>Button (exact label)</th><th>Where</th><th>What it does / after clicking</th><th>Changes data?</th></tr>
+    <tr><td><b>▶ Run scenario</b> + the dropdown next to it</td><td>Header (top-right)</td><td><code>POST /api/simulate/scenario</code> with the selected scenario. Backend builds the scenario, scores it, saves it, opens a case if score ≥ 60, and the UI routes you to the case (or a transaction-result page).</td><td><b>Yes</b> — inserts transactions / auth events / assessment / (case)</td></tr>
+    <tr><td>The four <b>scenario cards</b> (Normal payment / Suspicious payment / Account takeover / Card-testing ring)</td><td>Dashboard "Start here" strip</td><td>Shortcut that sets the dropdown and runs that scenario. Same as above.</td><td>Yes</td></tr>
+    <tr><td><b>Reset demo</b></td><td>Header</td><td><code>POST /api/admin/reset</code> → <code>seed()</code> wipes every table and regenerates the deterministic population. Returns to the dashboard.</td><td><b>Yes</b> — wipes + re-seeds the whole DB</td></tr>
+    <tr><td><b>How Vigil works</b></td><td>Header</td><td>Re-opens the 6-point intro card.</td><td>No</td></tr>
+    <tr><td><b>○ Judge view / ● Full detail</b></td><td>Header</td><td>Toggles every technical panel on the case screen (5-layer calc, model / tool-calls / latency, evidence ledger, audit trail) on or off. Stored per-browser.</td><td>No</td></tr>
+    <tr><td><b>Open case →</b> (or click the row)</td><td>Dashboard case queue</td><td><code>GET /api/cases/{id}</code> → opens the 4-step case screen.</td><td>No</td></tr>
+    <tr><td><b>← Back to dashboard</b></td><td>Case / transaction-result screen</td><td>Returns to the dashboard and refreshes its metrics.</td><td>No</td></tr>
+    <tr><td>A <b>warning row</b> in "Why is this suspicious?"</td><td>Case section 2</td><td>Expands / collapses the plain-English explanation for that signal or rule.</td><td>No</td></tr>
+    <tr><td>A <b>pipeline stage</b> (Transaction / Risk signals / Risk analysis / Risk score / Recommendation)</td><td>Case section 3</td><td>Shows a plain-language explanation of that stage.</td><td>No</td></tr>
+    <tr><td><b>show the exact score calculation</b></td><td>Case section 3</td><td>Expands the 5-layer breakdown (statistical base → rules → engine score → AI → analyst). Same as turning on Full detail.</td><td>No</td></tr>
+    <tr><td><b>Run AI investigation</b> → becomes <b>✓ Investigation complete</b></td><td>Case section 4</td><td><code>POST /api/cases/{id}/investigate</code> → Gemini agentic loop (or engine-only fallback). Writes <code>agent_runs</code> + <code>agent_findings</code> + <code>case_evidence</code>; case status → <code>REVIEW_REQUIRED</code>.</td><td><b>Yes</b> — inserts run / findings / evidence rows</td></tr>
+    <tr><td><b>Block Transaction</b></td><td>Case section 4</td><td>Selects the action. Then a reason box (required only if it differs from Vigil's pick).</td><td>Not until "Confirm"</td></tr>
+    <tr><td><b>Hold for Review</b></td><td>Case section 4</td><td>Selects the action.</td><td>Not until "Confirm"</td></tr>
+    <tr><td><b>Require Extra Verification</b></td><td>Case section 4</td><td>Selects the action. (This is the "step-up" action, <code>STEP_UP_AUTH</code>.)</td><td>Not until "Confirm"</td></tr>
+    <tr><td><b>Allow &amp; Monitor</b></td><td>Case section 4</td><td>Selects the action (<code>MONITOR</code>).</td><td>Not until "Confirm"</td></tr>
+    <tr><td><b>Allow Payment</b></td><td>Case section 4</td><td>Selects the action (<code>ALLOW</code>).</td><td>Not until "Confirm"</td></tr>
+    <tr><td><b>Confirm decision &amp; close case</b></td><td>Case section 4 (after selecting an action)</td><td><code>POST /api/cases/{id}/decision</code> → writes a <code>decisions</code> row, sets <code>cases.status</code> + <code>closed_at</code>, appends an <code>analyst_decision</code> audit row. Shows "✓ Case resolved". A blank reason on an override → HTTP 422.</td><td><b>Yes</b></td></tr>
+    <tr><td><b>Cancel</b></td><td>Case section 4</td><td>Clears the selected action / reason box.</td><td>No</td></tr>
+    <tr><td><b>▸ Developer / system details</b></td><td>Bottom of the case screen</td><td>Expander for all technical panels. Same as Full detail.</td><td>No</td></tr>
+  </table>
+  <p class="muted">There is no separate "Investigate", "View details", or "Refresh" button — the dashboard
+  auto-refreshes every 6 seconds, and "investigation" is the "Run AI investigation" button in step 4.</p>
+</div>
+
+<!-- ===================== PART 5 ===================== -->
+<div class="sec pagebreak">
+  <h2>Part 5 — Screen-by-screen explanation</h2>
+
+  <h3>Screen A — Intro card (first load)</h3>
+  <img class="shot h" src="guide.png">
+  <div class="cap">The six points a judge needs. Re-openable via <b>How Vigil works</b>.</div>
+  <div class="box click"><b>CLICK THIS FIRST:</b> "Got it — start the demo".</div>
+
+  <h3>Screen B — Dashboard</h3>
+  <img class="shot" src="dashboard.png">
+  <div class="legend">
+    <b>1</b> Header — scenario dropdown + <b>▶ Run scenario</b>, <b>Reset demo</b>, <b>How Vigil works</b>, <b>○ Judge view</b> toggle, and a status chip showing the AI provider.<br>
+    <b>2</b> "Start here" strip + four scenario cards (each shows the expected outcome).<br>
+    <b>3</b> KPI tiles — payments monitored, suspicious, open cases, critical cases, waiting for an analyst, avg investigation time.<br>
+    <b>4</b> Outcome strip — detection rate, median time to decision, risk-mix bar.<br>
+    <b>5</b> "Suspicious cases — click a row to investigate" — the case queue, highest risk first, each row ends in <b>Open case →</b>.<br>
+    <b>6</b> "Recent payments" — the latest scored transactions with their scores (you can see 0 / 36 / 75 / 96 side by side).
+  </div>
+  <div class="box click"><b>CLICK THIS FIRST:</b> a scenario card (e.g. <b>Account takeover</b>), or the dropdown → <b>▶ Run scenario</b>.<br>
+  <b>THEN:</b> if a case opens, you are taken straight into it. Otherwise click <b>Open case →</b> on a queue row.<br>
+  <b>DO NOT WORRY ABOUT:</b> the exact KPI numbers — they are aggregates over the synthetic population.</div>
+
+  <h3>Screen C — Case screen (the main screen)</h3>
+  <img class="shot" src="critical.png">
+  <div class="legend">
+    <b>1</b> Progress bar — <b>Review the transaction → Check the risk signals → Review Vigil's recommendation → Take action</b>.<br>
+    <b>2</b> Section 1 — the case id, status, band, amount, and a plain headline + summary.<br>
+    <b>3</b> Section 2 — "Why is this suspicious?" — one row per warning; click to expand.<br>
+    <b>4</b> Section 3 — the score ring, the <b>"Why this score?"</b> breakdown, the pipeline, and <b>VIGIL RECOMMENDS</b>.<br>
+    <b>5</b> Section 4 — optional <b>Run AI investigation</b>, then the five action buttons (Vigil's pick highlighted), then <b>Confirm decision &amp; close case</b>.<br>
+    <b>6</b> <b>Developer / system details</b> — collapsed by default.
+  </div>
+  <div class="box click"><b>CLICK THIS FIRST:</b> read sections 1 → 2 → 3 top to bottom.<br>
+  <b>THEN:</b> (optional) <b>Run AI investigation</b> → pick an action → <b>Confirm decision &amp; close case</b>.<br>
+  <b>DO NOT WORRY ABOUT:</b> "Developer / system details" — a judge does not need it. Open it only if asked "is this real?".</div>
+
+  <h3>Screen D — Case screen with Full detail on</h3>
+  <img class="shot" src="critical_tech.png">
+  <div class="cap">The <b>● Full detail</b> toggle reveals: the 5-layer score calculation, AI mode / model / tool-calls / latency / grounding verdict, findings with VERIFIED / UNVERIFIED / REFUTED tags, the evidence ledger, per-signal bars, the timeline, and the full audit trail. None of this is needed to understand the product.</div>
+
+  <h3>Screen E — Transaction result (Normal / Suspicious, no case)</h3>
+  <img class="shot" src="normal.png">
+  <div class="cap"><b>Normal</b> → 0 / 100, LOW, "Allow Payment". The banner: "Vigil opened no case … normal activity does not create alerts." A deliberate demo point — Vigil does not cry wolf.</div>
+
+  <h3>Screen F — Case resolved</h3>
+  <img class="shot h" src="resolved.png">
+  <div class="cap">After <b>Confirm decision &amp; close case</b>: all four progress steps show ✓, the status is <b>Blocked</b>, and section 4 reads "✓ Case resolved — The analyst chose Block Transaction. The decision and reason are now in the audit trail."</div>
+</div>
+
+<!-- ===================== PART 6 ===================== -->
+<div class="sec pagebreak">
+  <h2>Part 6 — The transaction screen, field by field</h2>
+  <p>Using the live <b>Account takeover</b> case (<code>CASE-2026-0004</code>):</p>
+  <table>
+    <tr><th>Field on screen</th><th>Example value</th><th>What it means / why it is shown</th><th>Source</th></tr>
+    <tr><td>Case id</td><td><code>CASE-2026-0004</code></td><td>A case is a suspicious transaction escalated for an analyst. Format <code>CASE-{year}-{n:04d}</code>.</td><td><code>cases</code> table, <code>next_case_id()</code></td></tr>
+    <tr><td>Status</td><td>New → Blocked</td><td>Where the case is in its lifecycle. NEW → INVESTIGATING → REVIEW_REQUIRED → BLOCKED / APPROVED.</td><td><code>cases.status</code></td></tr>
+    <tr><td>Risk band chip</td><td>CRITICAL RISK</td><td>The score bucket. LOW / MEDIUM / HIGH / CRITICAL.</td><td><code>risk_assessments.band</code></td></tr>
+    <tr><td>Amount</td><td><b>₹56,394</b></td><td>The payment value. Stored as integer paise (<code>5,639,388</code>) and shown in rupees. Compared against this customer's median (₹13,560) — here ≈ 4.2×.</td><td><code>transactions.amount_paise</code></td></tr>
+    <tr><td>Method</td><td>UPI</td><td>Rail used (upi / card / netbanking). Card-testing scenarios use "card"; account-takeover uses "upi".</td><td><code>transactions.method</code></td></tr>
+    <tr><td>City</td><td>Kolkata</td><td>Where the payment originated. Matters because it is 1,574 km from the customer's home (Pune) — see the impossible-travel rule.</td><td><code>transactions.city / lat / lng</code></td></tr>
+    <tr><td>Merchant</td><td>Gift Card Store</td><td>Who is being paid. Gift-card / wallet top-up merchants are common cash-out points for stolen accounts. (MCC <code>5947</code>.)</td><td><code>transactions.merchant_name / merchant_mcc</code></td></tr>
+    <tr><td>Time</td><td>31 Aug, 08:25 pm</td><td>When it happened. Compared to the customer's active hours (07:00–23:00 here → inside window, so no time signal).</td><td><code>transactions.created_at</code></td></tr>
+    <tr><td>Plain headline</td><td>"Suspected account takeover — impossible travel"</td><td>A generated summary based on which rules fired.</td><td>computed in the frontend from the assessment</td></tr>
+    <tr><td>Summary line</td><td>"₹56,394 vs ₹13,560 normal · new device · 1574 km from Pune · 3 failed/declined attempts · device shared with 2 other customers"</td><td>The specific facts, from the triggered signals.</td><td>computed from <code>risk_signals</code> + <code>related_events</code></td></tr>
+  </table>
+  <h4>Customer information (Full detail, or the "normal behaviour" block)</h4>
+  <table>
+    <tr><th>Field</th><th>Example</th><th>Meaning</th></tr>
+    <tr><td>Customer id</td><td>CUST-1002</td><td>The account holder. One of 12 synthetic customers.</td></tr>
+    <tr><td>Home city</td><td>Pune</td><td>Where this customer normally transacts. The baseline for the location signal.</td></tr>
+    <tr><td>Typical spend (median)</td><td>₹13,560</td><td>Middle of this customer's history — the baseline for the amount signal. Computed by <code>numpy.median</code> at seed time.</td></tr>
+    <tr><td>p95 amount</td><td>₹30,599</td><td>95th percentile of history. If a payment exceeds this on a new device, the new-device signal severity doubles.</td></tr>
+    <tr><td>Active hours</td><td>07:00–23:00</td><td>When this customer is normally active. Baseline for the time-of-day signal.</td></tr>
+    <tr><td>Known devices</td><td>['DEV-1007']</td><td>Devices seen on this account before. Anything else is "new".</td></tr>
+    <tr><td>KYC tier / prior payments</td><td>tier 2 / ~N</td><td>Context only; KYC tier is passed to the policy but not currently used in its body.</td></tr>
+  </table>
+  <h4>Device / connection information</h4>
+  <table>
+    <tr><th>Field</th><th>Example</th><th>Meaning</th></tr>
+    <tr><td>device</td><td>DEV-9106</td><td>The device id on this payment. Not in the customer's known list → "new device". Also used by 2 other customers → "shared device".</td></tr>
+    <tr><td>ip</td><td>185.66.151.201</td><td>The source IP. Used to link "shared IP" activity in related events. <code>ip_is_proxy</code> is stored (true here) but not currently read by any signal or rule.</td></tr>
+    <tr><td>txn id</td><td><code>txn_ato_cust-1002_…</code></td><td>The transaction primary key. The <code>txn_ato_</code> prefix marks it as account-takeover scenario output.</td></tr>
+  </table>
+</div>
+
+<!-- ===================== PART 7 ===================== -->
+<div class="sec pagebreak">
+  <h2>Part 7 — Every risk signal, in plain English</h2>
+  <p>Vigil runs <b>six</b> signal detectors (<code>backend/risk/signals.py</code>). Each compares the
+  payment to <i>this customer's own history</i> and outputs a severity from 0 to 1. It also has
+  <b>three</b> deterministic rules (<code>backend/risk/rules.py</code>) that set a minimum score.</p>
+
+  <h3>The 6 signals</h3>
+  <table>
+    <tr><th>Signal</th><th>Meaning</th><th>Why it matters</th><th>Weight</th></tr>
+    <tr><td><b>Unusually large amount</b> (<code>AMT_DEV</code>)</td><td>The payment is far above this customer's usual amount (robust z-score vs their median).</td><td>Account takeovers cash out fast and large.</td><td>0.80</td></tr>
+    <tr><td><b>Many payments in a short time</b> (<code>VEL_1H</code>)</td><td>More payments in the last hour than this customer's normal rate.</td><td>Bursts suggest automation or a panic cash-out.</td><td>0.70</td></tr>
+    <tr><td><b>Multiple failed attempts</b> (<code>AUTH_FAIL</code>)</td><td>Failed OTP / password / CVV / decline events in the 10 minutes before the payment succeeded.</td><td>Someone was guessing credentials right before this went through.</td><td>0.85</td></tr>
+    <tr><td><b>New device</b> (<code>DEV_NEW</code>)</td><td>The device has never been seen on this account. Severity doubles if the amount is also above p95.</td><td>An attacker uses their own device.</td><td>0.60</td></tr>
+    <tr><td><b>Far from the customer's usual location</b> (<code>GEO_DIST</code>)</td><td>The payment is well outside the customer's usual radius. Deliberately weak on its own — it needs corroboration.</td><td>Unexpected geography, but people do travel — so it only matters alongside other signals.</td><td>0.50</td></tr>
+    <tr><td><b>Unusual time of day</b> (<code>TIME_ODD</code>)</td><td>The payment is outside the customer's normal active hours.</td><td>Off-hours activity is mildly suspicious.</td><td>0.35</td></tr>
+  </table>
+
+  <h3>The 3 rules (each sets a score "floor")</h3>
+  <table>
+    <tr><th>Rule</th><th>Meaning</th><th>Why it matters</th><th>Floor</th></tr>
+    <tr><td><b>Impossible travel</b> (<code>R_IMPOSSIBLE_TRAVEL</code>)</td><td>A prior payment ≤ 3 hours earlier is ≥ 300 km away, implying a speed &gt; 900 km/h.</td><td>The same person cannot be in both places — the account is compromised.</td><td><b>85</b> (hard)</td></tr>
+    <tr><td><b>Device shared with other customers</b> (<code>R_MULTI_CUSTOMER_DEVICE</code>)</td><td>The same device was used by ≥ 2 <i>other</i> customers in the last 24 h.</td><td>One device paying from many accounts is a fraud-ring pattern.</td><td><b>75</b> (hard)</td></tr>
+    <tr><td><b>Burst of failed logins</b> (<code>R_AUTH_STORM</code>)</td><td>≥ 3 failed OTP / password / CVV attempts in the 5 minutes before a successful payment.</td><td>Credential-stuffing / OTP brute force that just succeeded.</td><td>65</td></tr>
+  </table>
+  <p class="muted">"Hard" rules force the recommended action to <b>Block</b> when the band is CRITICAL.
+  A rule can only <i>raise</i> the score to its floor, never lower it.</p>
+</div>
+
+<!-- ===================== PART 8 ===================== -->
+<div class="sec pagebreak">
+  <h2>Part 8 — How the risk score is calculated</h2>
+  <p><b>The score is a deterministic formula. Gemini does not calculate it, does not touch it, and
+  the score exists before any AI runs.</b> Source: <code>backend/risk/engine.py::assess()</code>.</p>
+  <div class="flow">INPUT      one transaction + this customer's prior transactions + prior auth events
+   |
+SIGNALS    6 detectors -> each gives normalized severity in [0,1] and has a fixed weight
+   |        contribution c = weight x normalized
+   |
+FUSION     grouped noisy-OR      backend/risk/fusion.py
+   |        groups: amount(AMT_DEV) | velocity(VEL_1H,AUTH_FAIL) | access(DEV_NEW,GEO_DIST) | temporal(TIME_ODD)
+   |        within a group:  g = 1 - PRODUCT(1 - c)
+   |        across groups:   p = 1 - PRODUCT(1 - g)
+   |        base_score = round(100 x p)
+   |
+ATTRIBUTION leave_one_out(): each signal's share = how much the fused score drops without it
+   |        (this is the "% of base" shown on screen; shares sum to ~100%)
+   |
+RULES      3 rules -> each fired rule imposes a score FLOOR; governing = highest floor
+   |
+FINAL      score = max(base_score, governing floor)     (clamped 0..100)
+   |
+BAND       policy.band_for(score):  &lt;35 LOW | 35-61 MEDIUM | 62-81 HIGH | &gt;=82 CRITICAL
+   |
+RECOMMEND  policy.decide(band, rules, amount, p95, kyc):
+             LOW      -> ALLOW
+             MEDIUM   -> MONITOR
+             HIGH     -> HOLD_FOR_REVIEW if (amount &gt; p95 or any rule) else STEP_UP_AUTH
+             CRITICAL -> BLOCK if any HARD rule fired, else HOLD_FOR_REVIEW</div>
+
+  <h3>Worked example — the live Account-takeover case (score 96)</h3>
+  <table>
+    <tr><th>Signal</th><th>weight</th><th>normalized</th><th>c = w×n</th><th>share of base</th></tr>
+    <tr><td>Multiple failed attempts (<code>AUTH_FAIL</code>)</td><td>0.85</td><td>0.750</td><td>0.6375</td><td><b>34%</b> → +33</td></tr>
+    <tr><td>New device (<code>DEV_NEW</code>)</td><td>0.60</td><td>1.000</td><td>0.600</td><td><b>29%</b> → +28</td></tr>
+    <tr><td>Far from usual location (<code>GEO_DIST</code>)</td><td>0.50</td><td>1.000</td><td>0.500</td><td><b>20%</b> → +19</td></tr>
+    <tr><td>Unusually large amount (<code>AMT_DEV</code>)</td><td>0.80</td><td>0.573</td><td>0.4584</td><td><b>17%</b> → +16</td></tr>
+    <tr><td>Many payments / hour (<code>VEL_1H</code>)</td><td>0.70</td><td>0</td><td>0</td><td>0</td></tr>
+    <tr><td>Unusual time (<code>TIME_ODD</code>)</td><td>0.35</td><td>0</td><td>0</td><td>0</td></tr>
+  </table>
+  <div class="flow">groups:  amount   = 1 - (1-0.4584)                 = 0.4584
+         velocity = 1 - (1-0)(1-0.6375)            = 0.6375
+         access   = 1 - (1-0.600)(1-0.500)         = 0.800
+         temporal = 0
+
+p = 1 - (1-0.4584)(1-0.6375)(1-0.800)(1-0)
+  = 1 - 0.5416 x 0.3625 x 0.200
+  = 1 - 0.03927
+  = 0.9607
+
+base_score = round(100 x 0.9607) = 96          (matches risk_assessments.base_score)
+
+rules fired:  R_IMPOSSIBLE_TRAVEL floor 85  (1574 km in 35 min = 2694 km/h)   [HARD, governing]
+              R_MULTI_CUSTOMER_DEVICE floor 75  (device on 2 other customers) [HARD]
+
+score = max(96, 85) = 96
+band  = band_for(96): 96 >= 82  ->  CRITICAL
+action= decide(CRITICAL, [hard rules], ...) -> BLOCK</div>
+  <p>So <b>96 / 100 → CRITICAL → Block</b>. In this run the statistical <b>base</b> (96) is already
+  above both rule floors, so the rules <b>confirm</b> the score rather than raise it. When the
+  randomised amount is smaller, the base lands in the 60s–80s and the impossible-travel rule visibly
+  lifts it to 85. The <b>Card-testing ring</b> case always shows the rule doing the lifting:
+  <code>base 50 → floor 75 (R_MULTI_CUSTOMER_DEVICE) → 75 / 100 HIGH</code>.</p>
+  <div class="box"><b>The "97" from your earlier screenshot</b> was the same calculation with a larger
+  randomised amount (the amount multiplier was later reduced), pushing <code>AMT_DEV.normalized</code>
+  higher so <code>base_score</code> reached 97. Same mechanism, different random draw.</div>
+</div>
+
+<!-- ===================== PART 9 ===================== -->
+<div class="sec pagebreak">
+  <h2>Part 9 — What the AI (Gemini) does</h2>
+  <table>
+    <tr><th>Question</th><th>Answer (from the code)</th></tr>
+    <tr><td>Does AI calculate the risk score?</td><td><b>No.</b> The score is <code>engine.py::assess()</code>. Gemini's output schema (<code>backend/agent/schema.py</code>) has <b>no numeric-score field</b>.</td></tr>
+    <tr><td>Does AI detect the suspicious transaction?</td><td><b>No.</b> The deterministic engine scores every transaction and opens the case. Gemini only runs afterwards, on demand.</td></tr>
+    <tr><td>Does AI investigate?</td><td><b>Yes.</b> It reads the case with 5 read-only tools (<code>get_risk_assessment</code>, <code>get_customer_profile</code>, <code>get_transaction_history</code>, <code>get_auth_events</code>, <code>find_related_events</code>).</td></tr>
+    <tr><td>Does AI explain?</td><td><b>Yes.</b> It writes <code>investigation_summary</code>, <code>behavioral_deviation</code>, <code>related_activity</code>, and per-claim <code>findings</code>.</td></tr>
+    <tr><td>Does AI provide a second opinion?</td><td><b>Yes.</b> <code>concurs_with_engine</code> + <code>dissent_reason</code>, and a qualitative <code>agent_risk_view</code> (a word: LOW/MEDIUM/HIGH/CRITICAL — not a number).</td></tr>
+    <tr><td>Does AI recommend an action?</td><td><b>Advisory only.</b> Its <code>recommended_action</code> is shown next to the engine's. The binding recommendation is <code>policy.decide()</code>; the final action is the analyst's.</td></tr>
+    <tr><td>Does AI take any action?</td><td><b>No.</b> It has no tool that writes, blocks, refunds or mutates anything.</td></tr>
+    <tr><td>What happens if AI is unavailable?</td><td><code>runner.investigate()</code> catches <b>any</b> error (429 quota, timeout, parse failure). It drops the partial run, stores the raw error in <code>failure_reason</code>, and runs <code>backend/agent/fallback.py::build()</code> — a deterministic engine-only investigation with the same shape, badged <code>mode = "fallback"</code>, <code>model = "engine-only"</code>.</td></tr>
+    <tr><td>Every number it states</td><td>is re-computed from the database by <code>backend/agent/validator.py</code> (±1% tolerance) and tagged <code>VERIFIED / UNVERIFIED / REFUTED</code>. A "grounding verdict" (PASS / PARTIAL / FAIL) is shown. Failed claims are surfaced with a warning, never dropped.</td></tr>
+  </table>
+  <div class="box warn">
+    <b>Real observation from this build's testing session:</b> the Gemini <b>free tier allows 20
+    <code>generate_content</code> requests per day</b> for <code>gemini-3.6-flash</code>. After heavy
+    testing that quota was exhausted, so a live "Run AI investigation" returned
+    <code>429 RESOURCE_EXHAUSTED</code> and Vigil <b>automatically fell back to engine-only mode</b> —
+    which still produced a verified investigation and even a dissent (engine said <i>Hold</i>, the
+    fallback's fixed ring rule said <i>Block</i>). For a demo: either the quota resets (~24 h), or
+    present without the live AI step — it is optional, and the fallback is a fair demonstration of the
+    same workflow.
+  </div>
+  <h3>Relationship: engine ↔ AI ↔ analyst</h3>
+  <div class="flow">RISK ENGINE   deterministic. Owns the 0-100 score and the binding recommended action.
+              Runs on every transaction. Cannot be changed by the AI.
+      |
+      v
+AI (Gemini)   optional, on demand. Reads the case (read-only). Explains it, verifies the
+              numbers, and gives a second opinion. Cannot score. Cannot act.
+      |
+      v
+ANALYST       the only actor who resolves a case. Picks the final action; a choice that
+              differs from the engine needs a written reason. Recorded in the audit trail.</div>
+</div>
+
+<!-- ===================== PART 10 ===================== -->
+<div class="sec pagebreak">
+  <h2>Part 10 — The five analyst actions</h2>
+  <p>Selected in case section 4, then committed with <b>Confirm decision &amp; close case</b>
+  (<code>POST /api/cases/{id}/decision</code> → <code>services.py::apply_decision()</code>).</p>
+  <table>
+    <tr><th>Button</th><th>Plain meaning</th><th>What happens technically</th><th>Resulting case status</th></tr>
+    <tr><td><b>Block Transaction</b><br><code>BLOCK</code></td><td>Stop this payment now.</td><td>INSERT <code>decisions</code> row; <code>audit_log "analyst_decision"</code>.</td><td><b>BLOCKED</b> + <code>closed_at</code> set</td></tr>
+    <tr><td><b>Hold for Review</b><br><code>HOLD_FOR_REVIEW</code></td><td>Pause it; a human checks it before it can complete.</td><td>Same writes as above.</td><td><b>BLOCKED</b> + <code>closed_at</code> set</td></tr>
+    <tr><td><b>Require Extra Verification</b><br><code>STEP_UP_AUTH</code></td><td>Make the customer re-verify (extra OTP / biometric) before it goes through.</td><td>Same writes.</td><td><b>APPROVED</b> + <code>closed_at</code> set</td></tr>
+    <tr><td><b>Allow &amp; Monitor</b><br><code>MONITOR</code></td><td>Let it through, but watch the account for more unusual activity.</td><td>Same writes.</td><td><b>APPROVED</b> + <code>closed_at</code> set</td></tr>
+    <tr><td><b>Allow Payment</b><br><code>ALLOW</code></td><td>Let it through, no follow-up.</td><td>Same writes.</td><td><b>APPROVED</b> + <code>closed_at</code> set</td></tr>
+  </table>
+  <div class="box warn">
+    <b>Be honest about the scope.</b> The five buttons differ in what is <i>recorded</i> — the
+    <code>final_action</code>, the reason, the audit entry — and in the case status (BLOCK / HOLD →
+    BLOCKED; the other three → APPROVED). But there is <b>no payment gateway</b>:
+    <code>transactions.status</code> is never changed and nothing is actually blocked or held. "Block
+    Transaction" records the analyst's decision and closes the case. The engine, the grounded AI
+    investigation, and the audit trail are the parts that are fully real.
+  </div>
+  <p><b>Override rule:</b> if you pick an action that differs from Vigil's recommendation, a written
+  reason is <b>required</b> — the frontend shows a red note and the backend returns <b>HTTP 422</b>
+  without one. The reason is stored in <code>decisions.override_reason</code> and in the audit entry.</p>
+  <p><b>After a decision:</b> the case screen shows "✓ Case resolved", the decision buttons disappear,
+  the dashboard metrics update, and <code>POST /api/cases/{id}/investigate</code> now returns
+  <b>409</b> for that case.</p>
+</div>
+
+<!-- ===================== PART 11 ===================== -->
+<div class="sec pagebreak">
+  <h2>Part 11 — "My Vigil demo — exact clicks"</h2>
+  <p class="lead">Keep this beside your laptop. ~12 actions.</p>
+  <ol class="big" style="line-height:1.9">
+    <li>Open <code>http://localhost:8000</code>.</li>
+    <li>Click <b>Got it — start the demo</b> (dismiss the intro card).</li>
+    <li>Click the <b>Normal payment</b> scenario card. → score <b>0 · LOW · Allow</b>, no case. Say: "It doesn't cry wolf."</li>
+    <li>Click <b>← Back to dashboard</b>.</li>
+    <li>Click the <b>Suspicious payment</b> card. → score <b>~36 · MEDIUM · Monitor</b>, no case. Say: "Noted, not escalated."</li>
+    <li>Click <b>← Back to dashboard</b>.</li>
+    <li>Click the <b>Account takeover</b> card. → score <b>~95 · CRITICAL</b>, a case opens.</li>
+    <li>Read section <b>2</b> aloud (the warning list). Expand one row.</li>
+    <li>In section <b>3</b>, point at the <b>"Why this score?"</b> breakdown and the <b>VIGIL RECOMMENDS — BLOCK TRANSACTION</b> banner.</li>
+    <li><i>(optional)</i> Click <b>Run AI investigation</b>. If it is slow or errors, skip it — it's optional.</li>
+    <li>In section <b>4</b>, click <b>Block Transaction</b> → <b>Confirm decision &amp; close case</b>. → "✓ Case resolved".</li>
+    <li>Click <b>Reset demo</b> to return to a clean state.</li>
+  </ol>
+  <div class="box click"><b>If you only have 60 seconds:</b> steps 1, 2, 7, 9, 11, 12.</div>
+</div>
+
+<!-- ===================== PART 12 ===================== -->
+<div class="sec pagebreak">
+  <h2>Part 12 — The four demo scenarios</h2>
+  <p>The build supports <b>four</b> distinct scenarios, all produced by the <b>real engine</b> — nothing
+  is hard-coded for presentation. Each is a scripted template with a few randomised numbers, so exact
+  figures vary slightly per run but the band and recommendation are stable. Verified live:</p>
+
+  <table>
+    <tr><th>Scenario</th><th>How to start</th><th>Transaction that appears (live example)</th><th>Signals / rules</th><th>Score → band → action</th></tr>
+    <tr><td class="b-LOW">Normal payment</td><td>"Normal payment" card, or dropdown → Run scenario</td><td>CUST-1001, ₹12,571, UPI, Mumbai, known device DEV-1000</td><td>none triggered</td><td><b>0 → LOW → Allow</b> · no case</td></tr>
+    <tr><td class="b-MED">Suspicious payment</td><td>"Suspicious payment" card</td><td>CUST-1005, ₹2,761, CARD, Chennai, <b>new device</b> DEV-7274</td><td>New device only (100% of a base of 36)</td><td><b>36 → MEDIUM → Monitor</b> · no case</td></tr>
+    <tr><td class="b-CRIT">Account takeover</td><td>"Account takeover" card</td><td>CUST-1002, ₹56,394 (≈4.2× median), UPI, <b>Kolkata</b>, new device DEV-9106, proxy IP</td><td>Failed attempts, new device, far location, large amount; rules <b>Impossible travel</b> + <b>Shared device</b></td><td><b>~95 → CRITICAL → Block</b> · case opened</td></tr>
+    <tr><td class="b-HIGH">Card-testing ring</td><td>"Card-testing ring" card</td><td>CUST-1006, ₹109, CARD, Hyderabad, new device DEV-8111 used across 4 customers</td><td>New device + one decline; rule <b>Shared device</b> lifts base 50 → 75</td><td><b>75 → HIGH → Hold for review</b> · case opened</td></tr>
+  </table>
+
+  <h4>What to do in each</h4>
+  <ul>
+    <li><b>Normal / Suspicious</b> — nothing to decide (no case). Read the "no case opened" banner; it proves Vigil doesn't over-alert. Click <b>← Back to dashboard</b>.</li>
+    <li><b>Account takeover</b> — walk sections 1→3, then <b>Block Transaction → Confirm</b>.</li>
+    <li><b>Card-testing ring</b> — same, but here the recommendation is <b>Hold for Review</b>; this is the case where a rule visibly raises the score, and where the AI (or the fallback) may <b>dissent</b> and recommend Block instead. Either confirming Hold (agree with the engine) or Block (agree with the AI, with a reason) is a valid demo.</li>
+  </ul>
+  <img class="shot" src="cardtesting.png">
+  <div class="cap">Card-testing ring — the "Why this score?" panel shows <code>base 50</code> raised to <code>75</code> by the <b>MULTI_CUSTOMER_DEVICE</b> rule. This is the clearest illustration of a rule floor.</div>
+</div>
+
+<!-- ===================== PART 13 ===================== -->
+<div class="sec pagebreak">
+  <h2>Part 13 — How to explain Vigil to a judge</h2>
+
+  <h3>30 seconds</h3>
+  <div class="box ok">"Vigil is an AI-assisted risk-investigation tool for payment-fraud analysts. A deterministic
+  engine scores every payment 0–100 against that customer's own behaviour and shows exactly which
+  signals drove the score. For risky ones, a Gemini agent investigates and writes an evidence-backed
+  second opinion — and every number it states is re-checked against the database. Then a human
+  analyst decides: allow, verify, hold, or block. The AI never scores and never acts; the human is
+  always in control, and every decision is in an audit trail."</div>
+
+  <h3>1 minute</h3>
+  <div class="box ok"><p>"Fraud analysts get thousands of alerts and have seconds each to decide. Vigil does the
+  investigation for them.</p>
+  <p>When I run a scenario, the backend generates a synthetic payment and runs it through a
+  deterministic engine — six signals like new device, impossible travel, failed OTPs, unusual amount,
+  each compared to that customer's own history — combined with a noisy-OR model so overlapping
+  evidence isn't double-counted, plus a few hard rules that set a minimum score. That gives a 0–100
+  number and a band. A fixed policy turns that into a recommended action.</p>
+  <p>Optionally, Gemini investigates the case with read-only tools and writes a plain-language
+  explanation and a second opinion, with every figure verified against the database. If Gemini is
+  down, a deterministic fallback fills in.</p>
+  <p>The analyst makes the final call and any override needs a written reason. It's all synthetic
+  data, and it's decision support plus an audit trail — there's no real payment gateway."</p></div>
+
+  <h3>2 minutes (spoken over the demo)</h3>
+  <div class="box ok">
+  <p><b>[0:00]</b> "I'll run three scenarios through the same engine so you can see it respond differently."</p>
+  <p><b>[0:12]</b> <i>(Normal card)</i> "Normal payment — known device, home city, usual amount. Score 0, LOW, Allow. No case. It doesn't cry wolf."</p>
+  <p><b>[0:30]</b> <i>(Suspicious card)</i> "Now a device we've never seen. Score jumps to about 36, MEDIUM, Monitor. One signal, no rule, still no case — noted, not escalated."</p>
+  <p><b>[0:48]</b> <i>(Account takeover card)</i> "The full attack: far city, new device, failed OTPs, a shared device. Score about 95, CRITICAL. This 'Why this score?' panel is the engine's own breakdown — failed attempts, new device, distance, amount — plus two hard rules, impossible travel and shared device."</p>
+  <p><b>[1:15]</b> "Vigil recommends Block. The pipeline shows how it got there. The score is a fixed formula — the AI does not produce it."</p>
+  <p><b>[1:30]</b> <i>(optional)</i> "The AI investigation adds an evidence-based opinion when available, and the backend re-verifies every figure it cites."</p>
+  <p><b>[1:45]</b> "But the analyst decides. I'll block it, confirm. That decision and reason are now in the audit trail, and the case is resolved."</p>
+  <p><b>[2:00]</b> "Suspicious payment in, explainable decision out, human in control."</p>
+  </div>
+</div>
+
+<!-- ===================== PART 14 ===================== -->
+<div class="sec pagebreak">
+  <h2>Part 14 — Judge questions + accurate answers</h2>
+  <table>
+    <tr><th>#</th><th>Question</th><th>Answer</th></tr>
+    <tr><td>1</td><td>Where does the transaction come from?</td><td>Synthetic data my backend generates. <code>backend/seed.py::_account_takeover()</code> (a scripted template), called from <code>POST /api/simulate/scenario</code>, written to the SQLite <code>transactions</code> table, read back by the API.</td></tr>
+    <tr><td>2</td><td>Is this real transaction data?</td><td>No. 100% synthetic, generated locally by <code>seed.py</code>. No real customer data anywhere.</td></tr>
+    <tr><td>3</td><td>Is the transaction randomly generated?</td><td>Partly. The <i>template</i> is fixed; a handful of numbers are randomised within fixed ranges (amount 3.2–4.2× the median, device id, IP, which 2 ring peers). The 12-customer population is <i>deterministic</i> — <code>random.Random(42)</code>.</td></tr>
+    <tr><td>4</td><td>Is Vigil actually using machine learning?</td><td>No. The score is deterministic arithmetic over hand-set weights and rules. No trained model. The only AI is Gemini in the optional investigation step, and it never scores.</td></tr>
+    <tr><td>5</td><td>How is the risk score calculated?</td><td>6 weighted signals → grouped noisy-OR fusion → <code>base_score</code>; 3 rules impose score floors; <code>score = max(base, floor)</code>; band + action from a fixed policy. Deterministic and reproducible.</td></tr>
+    <tr><td>6</td><td>Why is this transaction ~95/100?</td><td>Point at "Why this score?": failed attempts ~34%, new device ~29%, far location ~20%, large amount ~17% of a base of ~96; plus the impossible-travel (85) and shared-device (75) rules. Base already exceeds the floors here, so the rules confirm it. CRITICAL + a hard rule → Block.</td></tr>
+    <tr><td>7</td><td>What does Gemini do?</td><td>Only on "Run AI investigation": reads the case with read-only tools, writes an evidence-cited summary and a second opinion. Every number is re-verified against the DB. It does not score and cannot act.</td></tr>
+    <tr><td>8</td><td>What happens if Gemini fails / hits quota?</td><td><code>runner.investigate()</code> catches it, stores the raw error, and runs a deterministic engine-only fallback with the same output shape, badged in the UI. The score and recommendation are unaffected (they don't depend on the AI).</td></tr>
+    <tr><td>9</td><td>Why do you need AI at all?</td><td>You don't for the score — that's deterministic. The AI adds a plain-language narrative, cross-account context, and a challenge to the engine (it can dissent), all grounded by re-verification. It speeds up the analyst without being trusted blindly.</td></tr>
+    <tr><td>10</td><td>What happens when you click Block?</td><td>A <code>decisions</code> row is inserted, <code>cases.status</code> → BLOCKED, <code>closed_at</code> set, and an append-only <code>audit_log</code> entry is written. Honest caveat: there is no payment gateway; <code>transactions.status</code> is not changed.</td></tr>
+    <tr><td>11</td><td>Is the final decision made by AI?</td><td>No. The analyst makes it. Any choice differing from the engine's recommendation requires a written reason (enforced — HTTP 422 otherwise).</td></tr>
+    <tr><td>12</td><td>Can Vigil handle multiple transactions?</td><td>Yes — the seed creates ~1,080, all scored; the dashboard shows the queue and a risk-mix distribution. Scoring is per-transaction and fast (single-digit ms).</td></tr>
+    <tr><td>13</td><td>How would this work in production?</td><td>The engine would sit inline on the payment stream; "Block/Hold" would call the real payment/auth service; signals would use production feature stores; the AI step stays asynchronous and advisory. The architecture (engine → optional grounded AI → human + audit) is unchanged.</td></tr>
+    <tr><td>14</td><td>How would you reduce false positives?</td><td>The noisy-OR fusion and the deliberately-weak geo signal already limit them; the <b>Normal</b> scenario scores 0 and opens no case. Next steps: per-segment thresholds, tuned weights from labelled outcomes, and an allow-list for known travel / recurring merchants.</td></tr>
+    <tr><td>15</td><td>How is this different from traditional fraud rules?</td><td>Traditional rules are pass/fail and opaque. Vigil keeps hard rules as <i>floors</i> but adds a transparent statistical score with exact per-signal attribution, plus a grounded AI layer that explains and can challenge the engine — while a human still decides.</td></tr>
+    <tr><td>16</td><td>Does the score change if I run the same scenario twice?</td><td>Slightly — the amount is randomised, so the score moves a few points. The band and recommendation are stable.</td></tr>
+    <tr><td>17</td><td>What stops the AI from making up numbers?</td><td><code>backend/agent/validator.py</code> recomputes every quantitative claim from the DB (±1%) and tags it VERIFIED / UNVERIFIED / REFUTED; the grounding verdict is shown; failed claims are surfaced, not hidden.</td></tr>
+  </table>
+</div>
+
+<!-- ===================== PART 15 ===================== -->
+<div class="sec pagebreak">
+  <h2>Part 15 — If something goes wrong during the demo</h2>
+  <table>
+    <tr><th>Problem</th><th>What it means</th><th>What to click / do</th></tr>
+    <tr><td>Page doesn't load / KPIs stay blank skeletons</td><td>The backend isn't running or the browser can't reach it.</td><td>Start it: <code>uvicorn backend.main:app --port 8000</code>. Open <code>http://localhost:8000</code>. A red toast "Cannot reach backend" confirms this.</td></tr>
+    <tr><td>Case queue is empty / "No open cases"</td><td>No scenario has crossed the case threshold yet (Normal and Suspicious don't).</td><td>Run <b>Account takeover</b> or <b>Card-testing ring</b>. If still empty, click <b>Reset demo</b> first.</td></tr>
+    <tr><td>"Run scenario" does nothing / errors</td><td>Backend error or the DB isn't seeded.</td><td>Click <b>Reset demo</b> (re-seeds), then try again. Check the terminal running uvicorn for a stack trace.</td></tr>
+    <tr><td>"Run AI investigation" spins for minutes</td><td>Normal on the live model (~1–3 min).</td><td>Wait, or skip it — it's optional. Present sections 1–3 and the decision without it.</td></tr>
+    <tr><td>AI investigation finishes instantly and says "engine-only" / a yellow badge</td><td>Gemini was unavailable — usually <code>429 RESOURCE_EXHAUSTED</code> (free tier = 20 requests/day) or no API key.</td><td>Nothing to fix on the spot. Say: "the AI step fell back to Vigil's deterministic mode — the score and workflow are unaffected." Quota resets in ~24 h.</td></tr>
+    <tr><td>Any red error toast (bottom-right)</td><td>An API call failed; the text is the backend message.</td><td>Retry the action once. If it persists, <b>Reset demo</b> and restart the scenario.</td></tr>
+    <tr><td>Score / signals don't appear on a case</td><td>The assessment didn't attach (rare) — usually a stale case from before a reset.</td><td>Go <b>← Back to dashboard</b>, <b>Reset demo</b>, run the scenario fresh.</td></tr>
+    <tr><td>"Confirm decision" button is disabled</td><td>You picked an action that differs from Vigil's recommendation and the reason box is empty.</td><td>Type a one-line reason. The button enables.</td></tr>
+    <tr><td>"Confirm decision" returns an error</td><td>HTTP 422 — override without a reason; or 409 — the case is already resolved.</td><td>422: add a reason. 409: the case is done; go back to the dashboard.</td></tr>
+    <tr><td>Reset demo seems to do nothing</td><td>It succeeded silently (it returns to the dashboard). A toast "Demo reset to its starting state" confirms it.</td><td>Re-open the dashboard; the queue should show the 3 seeded historical cases.</td></tr>
+    <tr><td>Screenshots in this guide look different</td><td>You're on a newer build, or a scenario's random numbers differ.</td><td>The structure and labels are current; only exact rupee amounts / a point or two of score vary.</td></tr>
+  </table>
+</div>
+
+<!-- ===================== PART 16 ===================== -->
+<div class="sec pagebreak">
+  <h2>Part 16 — One-page cheat sheet</h2>
+  <div class="box">
+    <p class="big">VIGIL DEMO CHEAT SHEET</p>
+    <div class="kv" style="grid-template-columns:150px 1fr; font-size:9.5pt">
+      <div>WHAT IS VIGIL?</div><div>A deterministic engine scores every payment 0–100 and recommends an action; an AI agent explains the risky ones as an optional second opinion; a human analyst makes the audited final decision.</div>
+      <div>OPEN</div><div><code>http://localhost:8000</code> → dismiss the intro card.</div>
+      <div>FIRST CLICK</div><div>A scenario card (start with <b>Normal payment</b>), or the header dropdown → <b>▶ Run scenario</b>.</div>
+      <div>THEN</div><div>For a case: read sections <b>1 → 2 → 3</b>, then section <b>4</b>: pick an action → <b>Confirm decision &amp; close case</b>.</div>
+      <div>TRANSACTION</div><div>Synthetic, generated by <code>backend/seed.py</code>, stored in SQLite. Not real, not typed by you, not from an API feed.</div>
+      <div>RISK SIGNALS</div><div>6 checks vs the customer's own history: large amount, many payments/hour, failed logins, new device, far location, odd time. Plus 3 rules: impossible travel, shared device, auth storm.</div>
+      <div>RISK SCORE</div><div>Weighted signals → noisy-OR fusion → <code>base</code>; rules set a floor; <code>score = max(base, floor)</code>. Bands: &lt;35 LOW, 35–61 MEDIUM, 62–81 HIGH, ≥82 CRITICAL. <b>Deterministic — not AI, not ML.</b></div>
+      <div>AI (GEMINI)</div><div>Optional, on "Run AI investigation" only. Investigates + explains + second opinion, every number re-verified. Never scores, never acts. Falls back to engine-only on any failure.</div>
+      <div>RECOMMENDATION</div><div>A fixed policy maps band + rules → Allow / Monitor / Step-up / Hold / Block. Shown as "VIGIL RECOMMENDS".</div>
+      <div>FINAL DECISION</div><div>Made by the <b>human analyst</b>. Overrides need a written reason. Stored in <code>decisions</code> + <code>cases.status</code> + <code>audit_log</code>.</div>
+      <div>RESET</div><div><b>Reset demo</b> in the header — wipes + re-seeds deterministically.</div>
+    </div>
+    <p style="margin-top:8pt"><b>One-liner:</b> "Suspicious payment in, explainable decision out, human in control."</p>
+  </div>
+</div>
+
+<!-- ===================== PART 17 ===================== -->
+<div class="sec pagebreak">
+  <h2>Part 17 — Visual flowchart</h2>
+  <div class="flow">START
+  |
+OPEN VIGIL   http://localhost:8000   (dismiss the "How Vigil works" card)
+  |
+DASHBOARD    backend/static/index.html
+  |
+CLICK a scenario card  /  dropdown + "&#9654; Run scenario"
+  |          runScenario()  ->  POST /api/simulate/scenario
+  v
+inject_scenario()                         backend/seed.py
+  |          picks victim + builder (_normal | _suspicious | _account_takeover | _card_testing)
+  v
+SYNTHETIC TRANSACTION  INSERT into SQLite table `transactions` (+ auth_events, + ring txns)
+  |
+  v
+RISK ENGINE   assess()                     backend/risk/engine.py
+  |  signals.run_all()   backend/risk/signals.py    -> 6 Signals (normalized 0..1, weight)
+  |  fusion.fuse_score() backend/risk/fusion.py     -> base_score  (grouped noisy-OR)
+  |  fusion.leave_one_out()                         -> per-signal contribution %
+  |  rules.evaluate()    backend/risk/rules.py      -> R_IMPOSSIBLE_TRAVEL 85 | R_MULTI_CUSTOMER_DEVICE 75 | R_AUTH_STORM 65
+  |
+  v
+RISK SCORE            score = max(base_score, governing floor)     -> risk_assessments + risk_signals rows
+  |
+  v
+RISK CLASSIFICATION   policy.band_for()   backend/risk/policy.py   -> LOW | MEDIUM | HIGH | CRITICAL
+  |
+  v
+RECOMMENDATION        policy.decide()                              -> ALLOW | MONITOR | STEP_UP_AUTH | HOLD_FOR_REVIEW | BLOCK
+  |
+  +--  score &lt; 60  ->  NO CASE  ->  transaction-result screen (read-only)  ->  Back to dashboard
+  |
+  v   score &gt;= 60
+open_case()            backend/services.py   -> cases row + audit_log "case_opened"
+  |
+  v
+CASE SCREEN  (4 steps)   GET /api/cases/{id} -> case_detail()      backend/api/cases.py
+  |
+  |  [OPTIONAL]  "Run AI investigation"  ->  POST /api/cases/{id}/investigate
+  |             runner.investigate()     backend/agent/runner.py
+  |               Gemini agentic loop (5 read-only tools)  |  fallback.build() (engine-only, on any error)
+  |               validator.validate()  re-checks every number
+  |               -> agent_runs + agent_findings + case_evidence rows ; status -> REVIEW_REQUIRED
+  v
+ANALYST DECISION   pick action -> (reason if override) -> "Confirm decision &amp; close case"
+  |                POST /api/cases/{id}/decision  ->  apply_decision()   backend/services.py
+  |                INSERT decisions row ; cases.status -> BLOCKED | APPROVED ; cases.closed_at ; audit_log "analyst_decision"
+  v
+FINAL STATUS   cases.status in SQLite      (transactions.status UNCHANGED = "captured" - no gateway)
+  |
+  v
+RESET / NEXT CASE   "Reset demo"  ->  POST /api/admin/reset  ->  seed()  (wipe + re-seed, deterministic)</div>
+  <p class="foot">Vigil — Complete Working Flow Guide. Generated from the running application and its source. All data is synthetic; no real customer data is used anywhere in Vigil.</p>
+</div>
+
+</body>
+</html>

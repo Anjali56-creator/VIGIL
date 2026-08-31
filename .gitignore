@@ -8,6 +8,11 @@ venv/
 
 # Secrets
 .env
+.env.*
+!.env.example
+
+# Generated documents (guides are regenerated from docs/ sources)
+*.pdf
 
 # Database
 *.db

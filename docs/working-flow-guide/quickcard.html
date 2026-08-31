@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Vigil — Demo Quick Card</title>
+<style>
+  @page { size: A4; margin: 15mm 15mm 16mm; }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { font: 10.5pt/1.55 "Segoe UI", system-ui, -apple-system, Roboto, sans-serif; color: #1b232f; margin: 0; }
+  h1 { font-size: 20pt; margin: 0 0 2pt; color: #0f2138; }
+  h2 { font-size: 12.5pt; margin: 14pt 0 6pt; padding-bottom: 3pt; border-bottom: 2px solid #1d4ed8; color: #0f2138; }
+  p { margin: 0 0 7pt; }
+  ol, ul { margin: 0 0 8pt; padding-left: 20pt; }
+  li { margin: 0 0 4pt; }
+  code { background: #eef1f6; padding: 1px 4px; border-radius: 3px; font-size: 9pt; font-family: ui-monospace, Consolas, monospace; }
+  .sub { color: #55606f; font-size: 10pt; margin: 0 0 10pt; }
+  .box { border: 1px solid #d6dde6; border-radius: 8px; padding: 9pt 11pt; background: #fafbfd; margin: 0 0 8pt; }
+  .box.ok { background: #eafaf1; border-color: #93d6b0; }
+  .box.q { background: #eef4ff; border-color: #9dbdf5; }
+  .box.q b.k { display:block; font-size: 10.5pt; color:#12336b; margin-bottom:3pt; }
+  b.step { color:#c62828; }
+  .pagebreak { page-break-before: always; }
+  .foot { margin-top: 10pt; font-size: 8.2pt; color: #8791a0; border-top: 1px solid #dbe1e9; padding-top: 4pt; }
+</style>
+</head>
+<body>
+
+<h1>Vigil — Demo Quick Card</h1>
+<p class="sub">Keep this beside the laptop. Full detail: <b>Vigil-Complete-Working-Flow-Guide.pdf</b>.</p>
+
+<h2>Workflow in one paragraph</h2>
+<p>Open Vigil &rarr; dismiss the intro card &rarr; pick a scenario (header dropdown or a dashboard card)
+&rarr; the real engine scores it &rarr; a <b>case opens only if score &ge; 60</b> (Account takeover,
+Card-testing ring); otherwise you get a read-only transaction-result page (Normal, Suspicious). Inside a
+case: <b>1</b> review the transaction &rarr; <b>2</b> check the risk signals &rarr; <b>3</b> read the
+score, the &ldquo;Why this score?&rdquo; breakdown and the recommendation &rarr; <b>4</b> (optionally
+run the AI investigation) pick an action &rarr; <b>Confirm decision &amp; close case</b> &rarr;
+&ldquo;&#10003; Case resolved&rdquo; &rarr; <b>Reset demo</b> for the next run.</p>
+
+<h2>The 12 clicks for the live demo</h2>
+<ol>
+  <li>Open <code>http://localhost:8000</code></li>
+  <li><b>Got it &mdash; start the demo</b></li>
+  <li><b class="step">Normal payment</b> card &rarr; 0 &middot; LOW &middot; Allow, no case &mdash; &ldquo;it doesn&rsquo;t cry wolf&rdquo;</li>
+  <li><b>&larr; Back to dashboard</b></li>
+  <li><b class="step">Suspicious payment</b> card &rarr; ~36 &middot; MEDIUM &middot; Monitor, no case &mdash; &ldquo;noted, not escalated&rdquo;</li>
+  <li><b>&larr; Back to dashboard</b></li>
+  <li><b class="step">Account takeover</b> card &rarr; ~95 &middot; CRITICAL, a case opens</li>
+  <li>Read section <b>2</b> aloud; expand one warning row</li>
+  <li>Section <b>3</b>: point at <b>&ldquo;Why this score?&rdquo;</b> and <b>VIGIL RECOMMENDS &mdash; BLOCK TRANSACTION</b></li>
+  <li><i>(optional)</i> <b>Run AI investigation</b> &mdash; skip if slow or it shows &ldquo;engine-only&rdquo;; it&rsquo;s optional</li>
+  <li>Section <b>4</b>: <b>Block Transaction</b> &rarr; <b>Confirm decision &amp; close case</b> &rarr; &ldquo;&#10003; Case resolved&rdquo;</li>
+  <li><b>Reset demo</b></li>
+</ol>
+<div class="box"><b>Only 60 seconds?</b> Do steps 1, 2, 7, 9, 11, 12.</div>
+
+<h2>The three answers, verbatim</h2>
+
+<div class="box q">
+  <b class="k">&ldquo;Where did this transaction come from?&rdquo;</b>
+  It&rsquo;s synthetic data my backend generated &mdash; not typed by me, not from an external feed.
+  Clicking <b>Run scenario</b> calls <code>POST /api/simulate/scenario</code> &rarr;
+  <code>inject_scenario()</code> in <code>backend/seed.py</code>, which runs the scenario template
+  (for Account takeover: <code>_account_takeover()</code> on the fixed demo customer
+  <code>CUST-1002</code>). That function scripts the attack &mdash; a normal payment 35 minutes earlier
+  in Pune, then three failed OTPs, then a large payment from a brand-new device in Kolkata (the
+  farthest seeded city from Pune), plus two other accounts using that same device. Every row is
+  inserted into the SQLite <code>transactions</code> / <code>auth_events</code> tables, scored by the
+  engine, and the screen reads it back via <code>GET /api/cases/{id}</code>. The customer baseline it
+  is compared against comes from <code>seed()</code> &mdash; <code>random.Random(42)</code>, 90 days of
+  synthetic history.
+</div>
+
+<div class="box q">
+  <b class="k">&ldquo;How did Vigil calculate this risk score?&rdquo;</b>
+  A deterministic formula in <code>backend/risk/engine.py</code> &mdash; no AI, no ML. Six signals each
+  compare the payment to this customer&rsquo;s own history and produce a 0&ndash;1 severity with a fixed
+  weight: failed attempts (0.85), new device (0.60), far location (0.50), large amount (0.80), plus
+  velocity and time-of-day. They are combined with grouped noisy-OR &mdash;
+  <code>p = 1 &minus; &Pi;(1 &minus; group)</code> &mdash; giving a base of about 96. Then two hard
+  rules fire: impossible travel (1,574&nbsp;km in 35&nbsp;min &rArr; ~2,700&nbsp;km/h, floor 85) and
+  shared device (floor 75). Final score = <code>max(base, highest floor)</code> = 96. 96 &ge; 82 &rarr;
+  CRITICAL; CRITICAL + a hard rule &rarr; the recommended action is Block. The on-screen
+  &ldquo;Why this score?&rdquo; panel shows the exact per-signal points. Same database state &rarr; same
+  number every time.
+</div>
+
+<div class="box q">
+  <b class="k">&ldquo;What does the AI (Gemini) do in Vigil?&rdquo;</b>
+  Only when the analyst clicks <b>Run AI investigation</b>. Gemini
+  (<code>gemini-3.6-flash</code>) reads the case through five <b>read-only</b> tools and writes a
+  plain-language summary, per-claim findings, and a second opinion (agree or dissent). Every number it
+  states is re-computed against the database (<code>backend/agent/validator.py</code>) and tagged
+  VERIFIED / UNVERIFIED / REFUTED. <b>It does not calculate the score</b> &mdash; its output schema has
+  no score field &mdash; <b>and it cannot take any action.</b> If it errors or hits quota,
+  <code>runner.investigate()</code> catches it and runs a deterministic engine-only fallback with the
+  same output shape, clearly badged. The score, the recommendation, and the analyst&rsquo;s decision
+  are unaffected by whether the AI ran.
+</div>
+
+<h2>Honest limits (say these if asked)</h2>
+<ul>
+  <li><b>Not machine learning.</b> The score is rules + statistics with hand-set weights. No trained model.</li>
+  <li><b>No payment gateway.</b> &ldquo;Block&rdquo; writes a decision row + changes the case status + an audit entry. <code>transactions.status</code> never changes; nothing is really stopped.</li>
+  <li><b>Synthetic data.</b> 12 generated customers, ~1,080 transactions, all local.</li>
+  <li><b>AI is optional and advisory.</b> Free-tier Gemini is 20 requests/day; when it runs out, Vigil falls back to engine-only automatically.</li>
+</ul>
+
+<p class="foot">Vigil &mdash; Demo Quick Card. Generated from the running application. All data is synthetic; no real customer data is used anywhere in Vigil.</p>
+
+</body>
+</html>

@@ -213,7 +213,11 @@ def _account_takeover(db: Session, victim: Customer, *, when=None, historical: b
             db.flush()
             assess(db, ring_txn)
 
-    amt = int(victim.amount_median_paise * rng.uniform(6.0, 8.5))
+    # ~3-4x the median: a clearly high-value transaction, but tuned so the *statistical*
+    # base score stays below the R_IMPOSSIBLE_TRAVEL floor (85). That keeps the demo
+    # narrative honest - the deterministic rule is visibly what lifts the score to
+    # CRITICAL, not the amount signal saturating on its own.
+    amt = int(victim.amount_median_paise * rng.uniform(3.2, 4.2))
     txn = Transaction(
         id=f"txn_ato_{victim.id.lower()}_{rng.randrange(16**8):08x}",
         customer_id=victim.id, amount_paise=amt, method="upi",
@@ -240,7 +244,12 @@ def _card_testing(db: Session, primary: Customer, *, when=None, historical: bool
     rule that raises the score to HIGH - a visible, explainable rule floor. The
     focus transaction is the latest one, on `primary`.
     """
-    t = when or now_ist()
+    # Pin the ring to a calm business hour so the focus transaction carries no
+    # incidental time-of-day signal. The whole point of this scenario is that the
+    # deterministic multi-customer-device RULE (not the anomaly score) is what
+    # lifts it from MEDIUM to HIGH - that has to be reproducible at any wall-clock
+    # time the demo is run.
+    t = (when or now_ist()).replace(hour=14, minute=30, second=0, microsecond=0)
     bad_device = f"DEV-8{rng.randint(100, 999)}"
     bad_ip = f"196.{rng.randint(1, 250)}.{rng.randint(1, 250)}.{rng.randint(1, 250)}"
     others = [c for c in db.scalars(select(Customer)) if c.id != primary.id]
@@ -283,6 +292,65 @@ def _card_testing(db: Session, primary: Customer, *, when=None, historical: bool
     return txn
 
 
+def _normal(db: Session, customer: Customer, *, when=None, historical: bool = False,
+            rng: random.Random) -> Transaction:
+    """A completely unremarkable transaction: known device, home city, active hour,
+    amount near the customer's median. Exercises the engine's *restraint* - it should
+    score LOW and open no case. Nothing is tagged as an attack."""
+    t = when or now_ist()
+    mid = (customer.active_hour_start + customer.active_hour_end) // 2
+    t = t.replace(hour=max(0, min(23, mid)), minute=rng.randint(0, 59), second=0, microsecond=0)
+    dev = (list(customer.known_device_ids) or ["DEV-0000"])[0]
+    hlat, hlng = _jitter(customer.home_lat, customer.home_lng, rng, 5)
+    m_name, m_mcc = rng.choice(MERCHANTS)
+    txn = Transaction(
+        id=f"txn_normal_{customer.id.lower()}_{rng.randrange(16**8):08x}",
+        customer_id=customer.id,
+        amount_paise=int(customer.amount_median_paise * rng.uniform(0.85, 1.15)),
+        method="upi", merchant_name=m_name, merchant_mcc=m_mcc,
+        device_id=dev,
+        ip_addr=f"49.{rng.randint(1, 250)}.{rng.randint(1, 250)}.{rng.randint(1, 250)}",
+        city=customer.home_city, lat=hlat, lng=hlng, created_at=t, status="captured",
+        is_attack=False, scenario_label="normal",
+    )
+    db.add(txn)
+    db.flush()
+    assessment = assess(db, txn)
+    if historical and assessment.score >= 60:
+        open_case(db, txn, assessment)
+    return txn
+
+
+def _suspicious(db: Session, customer: Customer, *, when=None, historical: bool = False,
+                rng: random.Random) -> Transaction:
+    """One genuinely odd transaction, but no smoking gun: a NEW device plus a moderately
+    high amount (kept below p95 so the amount alone does not dominate). No auth failures,
+    no shared device, no travel, no hard rule. Lands MEDIUM/HIGH -> MONITOR / STEP_UP,
+    with no case opened. Not tagged as an attack - it is 'unusual', not 'known fraud'."""
+    t = when or now_ist()
+    mid = (customer.active_hour_start + customer.active_hour_end) // 2
+    t = t.replace(hour=max(0, min(23, mid)), minute=rng.randint(0, 59), second=0, microsecond=0)
+    new_dev = f"DEV-7{rng.randint(100, 999)}"
+    hlat, hlng = _jitter(customer.home_lat, customer.home_lng, rng, 8)
+    cap = max(int(customer.amount_p95_paise * 0.9), customer.amount_median_paise + 1)
+    amount = min(int(customer.amount_median_paise * rng.uniform(2.2, 2.8)), cap)
+    txn = Transaction(
+        id=f"txn_susp_{customer.id.lower()}_{rng.randrange(16**8):08x}",
+        customer_id=customer.id, amount_paise=amount,
+        method="card", merchant_name="Croma Electronics", merchant_mcc="5732",
+        device_id=new_dev,
+        ip_addr=f"49.{rng.randint(1, 250)}.{rng.randint(1, 250)}.{rng.randint(1, 250)}",
+        city=customer.home_city, lat=hlat, lng=hlng, created_at=t, status="captured",
+        is_attack=False, scenario_label="suspicious_new_device",
+    )
+    db.add(txn)
+    db.flush()
+    assessment = assess(db, txn)
+    if historical and assessment.score >= 60:
+        open_case(db, txn, assessment)
+    return txn
+
+
 def seed(db: Session) -> dict:
     rng = random.Random(SEED)
     _wipe(db)
@@ -320,10 +388,21 @@ def seed(db: Session) -> dict:
             "dissent_case_txn": past3.id}
 
 
-SCENARIOS = ("account_takeover", "card_testing")
+SCENARIOS = ("normal", "suspicious", "account_takeover", "card_testing")
 
+_BUILDERS = {
+    "normal": _normal,
+    "suspicious": _suspicious,
+    "account_takeover": _account_takeover,
+    "card_testing": _card_testing,
+}
 
-_DEFAULT_VICTIM = {"account_takeover": "CUST-1002", "card_testing": "CUST-1006"}
+_DEFAULT_VICTIM = {
+    "normal": "CUST-1001",
+    "suspicious": "CUST-1005",
+    "account_takeover": "CUST-1002",
+    "card_testing": "CUST-1006",
+}
 
 
 def inject_scenario(db: Session, scenario: str = "account_takeover",
@@ -336,10 +415,7 @@ def inject_scenario(db: Session, scenario: str = "account_takeover",
     if not victim:
         raise ValueError("victim customer not found - seed the database first")
 
-    if scenario == "card_testing":
-        txn = _card_testing(db, victim, when=now_ist(), historical=False, rng=rng)
-    else:
-        txn = _account_takeover(db, victim, when=now_ist(), historical=False, rng=rng)
+    txn = _BUILDERS[scenario](db, victim, when=now_ist(), historical=False, rng=rng)
 
     assessment = txn.assessment
     case = open_case(db, txn, assessment) if assessment.score >= 60 else None
@@ -350,6 +426,8 @@ def inject_scenario(db: Session, scenario: str = "account_takeover",
         "customer_id": victim.id,
         "score": assessment.score,
         "band": assessment.band,
+        "recommended_action": assessment.recommended_action,
+        "requires_human_review": assessment.requires_human_review,
         "case_id": case.id if case else None,
     }
 

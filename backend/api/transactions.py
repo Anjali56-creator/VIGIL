@@ -13,7 +13,7 @@ from ..config import settings
 from ..db import get_db
 from ..models import Case, Customer, Transaction
 from ..risk.engine import assess
-from ..schemas import AssessmentOut, IngestResult, TransactionIn, TransactionOut
+from ..schemas import AssessmentOut, CustomerOut, IngestResult, TransactionIn, TransactionOut
 from ..services import open_case
 from ..util import now_ist, to_naive_ist
 
@@ -42,6 +42,7 @@ class TransactionListItem(BaseModel):
 class TransactionDetail(BaseModel):
     transaction: TransactionOut
     assessment: AssessmentOut | None
+    customer: CustomerOut | None
     case_id: str | None
 
 
@@ -122,5 +123,6 @@ def get_transaction(txn_id: str, db: Session = Depends(get_db)):
     return TransactionDetail(
         transaction=TransactionOut.model_validate(t),
         assessment=AssessmentOut.model_validate(t.assessment) if t.assessment else None,
+        customer=CustomerOut.model_validate(t.customer) if t.customer else None,
         case_id=case.id if case else None,
     )
