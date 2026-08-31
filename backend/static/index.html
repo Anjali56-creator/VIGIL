@@ -69,6 +69,14 @@
     .act-btn.rec.safe{background:#14532d;border-color:#16a34a}
     .act-btn.picked{outline:2px solid #4f9cf9;outline-offset:1px}
     .overlay{position:fixed;inset:0;background:rgba(4,8,14,.72);backdrop-filter:blur(3px);z-index:50;display:flex;align-items:center;justify-content:center;padding:20px}
+    .hflow{display:flex;flex-wrap:wrap;align-items:center;gap:4px}
+    .hstep{border:1px solid #223148;border-radius:7px;background:#0e1826;color:#9fb2c9;padding:5px 10px;font-size:11px;font-weight:600;letter-spacing:.02em}
+    .harr{color:#43597a;font-size:11px}
+    .scen{border:1px solid #2b3a52;border-radius:10px;background:#111a28;padding:10px 12px;cursor:pointer;transition:background .12s}
+    .scen:hover:not(:disabled){background:#16212f}
+    .scen:disabled{opacity:.5;cursor:not-allowed}
+    .nextstep{font-size:12.5px;color:#cdd8e6;background:#122036;border:1px solid #2d4573;border-radius:9px;padding:8px 12px}
+    .nextstep b{color:#8fb4e8;letter-spacing:.04em}
     @media(max-width:1100px){.cols{grid-template-columns:1fr!important}}
   </style>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js"></script>
@@ -93,11 +101,24 @@
       </template>
     </ol>
     <div class="text-xs text-slate-400 mb-4">
-      This demo runs on <b>synthetic data</b> — no real customers. Pick a scenario from the
-      <b class="text-ink">▶ Run scenario</b> menu (Normal, Suspicious, Critical, Fraud ring) and
-      watch the real engine score it differently each time.
+      This demo runs on <b>synthetic data</b> — no real customers. Use the
+      <b class="text-ink">Start a demo investigation</b> card (Normal, Suspicious, Account takeover,
+      Fraud ring) and watch the real engine score each one differently.
     </div>
     <button class="btn btn-primary" @click="dismissGuide()">Got it — start the demo</button>
+  </div>
+</div>
+
+<!-- ============ RESET CONFIRM ============ -->
+<div class="overlay" x-show="showReset" x-cloak @click.self="showReset=false">
+  <div class="panel p-6 max-w-[440px] w-full">
+    <div class="text-base font-semibold mb-1">Reset demo?</div>
+    <p class="text-sm text-slate-400 mb-5">This clears the current synthetic investigation and returns
+      Vigil to its starting state. No real data is affected.</p>
+    <div class="flex gap-2">
+      <button class="btn" @click="showReset=false">Cancel</button>
+      <button class="btn btn-danger" @click="confirmReset()" :disabled="busy">Reset demo</button>
+    </div>
   </div>
 </div>
 
@@ -118,7 +139,7 @@
     <button class="btn" @click="techOpen=!techOpen"
       :title="techOpen ? 'Hide model / tooling / audit internals' : 'Show model / tooling / audit internals'"
       x-text="techOpen ? '● Full detail' : '○ Judge view'"></button>
-    <button class="btn" @click="reset()" :disabled="busy">Reset demo</button>
+    <button class="btn" @click="showReset=true" :disabled="busy">Reset demo</button>
     <select x-model="scenario" class="btn" style="padding-right:26px"
       :disabled="busy" title="Pick a payment scenario to run through the real engine">
       <template x-for="s in scenarioList" :key="s.key">
@@ -143,106 +164,104 @@
 
 <!-- ==================================================== DASHBOARD -->
 <section x-show="view==='dashboard'">
-  <div class="panel p-4 mb-4" style="border-color:#26344a">
-    <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-      <span class="sec-h">Start here</span>
-      <span class="text-sm text-slate-300">
-        Pick a scenario from <b class="text-ink">▶ Run scenario</b> (top-right) → the real engine scores it →
-        a case opens only when the risk is high enough → walk the 4 steps.
-      </span>
+
+  <!-- WHAT IS VIGIL + HOW IT WORKS (always visible) -->
+  <div class="mb-4">
+    <div class="text-sm text-slate-300 mb-2">
+      <b class="text-ink">Vigil</b> helps analysts investigate suspicious transactions — understand
+      <i>why</i> they are risky, see the risk score, read the recommendation, and make the final decision.
     </div>
-    <div class="mt-3 grid sm:grid-cols-2 lg:grid-cols-4 gap-2">
-      <template x-for="s in scenarioList" :key="s.key">
-        <button class="text-left rounded-lg border border-line p-2.5 hover:bg-panel2 transition"
-          @click="scenario=s.key; runScenario()" :disabled="busy">
-          <div class="text-xs font-semibold" :class="'band-'+s.band" x-text="s.title"></div>
-          <div class="text-[11px] text-slate-400 mt-0.5" x-text="s.blurb"></div>
-          <div class="text-[11px] text-slate-500 mt-1" x-text="'expected: '+s.expect"></div>
-        </button>
+    <div class="hflow">
+      <template x-for="(w,i) in howFlow" :key="w">
+        <span style="display:contents">
+          <span class="hstep" x-text="w"></span>
+          <span class="harr" x-show="i < howFlow.length-1">→</span>
+        </span>
       </template>
     </div>
   </div>
 
-  <div class="flex items-baseline justify-between mb-4">
-    <h1 class="text-base font-semibold">Operations overview</h1>
-    <span class="text-xs text-slate-400" x-text="lastSync"></span>
+  <!-- PRIMARY ACTION -->
+  <div class="panel p-5 mb-3" style="border-color:#2d4573;background:#0e1a30">
+    <div class="text-lg font-semibold">Start a demo investigation</div>
+    <div class="text-sm text-slate-400 mt-0.5">
+      Generate a synthetic transaction and see how Vigil analyzes it. Each scenario runs through the
+      real risk engine and scores differently.
+    </div>
+    <div class="mt-3 grid sm:grid-cols-2 lg:grid-cols-4 gap-2">
+      <template x-for="s in scenarioList" :key="s.key">
+        <button class="scen text-left" @click="scenario=s.key; runScenario()" :disabled="busy">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold" :class="'band-'+s.band" x-text="s.title"></span>
+            <span class="chip" :class="'band-'+s.band" style="border-color:currentColor" x-text="s.band"></span>
+          </div>
+          <div class="text-[11px] text-slate-400 mt-1" x-text="s.blurb"></div>
+          <div class="text-[11px] mt-2 text-acc font-semibold">Run this scenario →</div>
+        </button>
+      </template>
+    </div>
+    <div class="text-[11px] text-slate-500 mt-2">
+      <span class="chip" style="border-color:#3a2f12;color:#e6b53c">DEMO ENVIRONMENT</span>
+      Transactions shown are synthetic scenarios for demonstrating Vigil's workflow — not real payments.
+    </div>
+  </div>
+
+  <div class="nextstep mb-4">
+    <b>Next step:</b>
+    <span x-text="cases.length ? 'open a case below, or run another scenario.' : 'run a scenario above — the Critical or Fraud-ring one opens a case you can walk through.'"></span>
   </div>
 
   <!-- loading skeleton -->
-  <div x-show="loading" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 mb-5">
-    <template x-for="i in 6" :key="i"><div class="panel p-4"><div class="skel h-3 w-20"></div><div class="skel h-7 w-14 mt-3"></div></div></template>
+  <div x-show="loading" class="grid md:grid-cols-2 gap-5">
+    <div class="panel p-4"><div class="skel h-3 w-32"></div><div class="skel h-20 w-full mt-3"></div></div>
+    <div class="panel p-4"><div class="skel h-3 w-32"></div><div class="skel h-20 w-full mt-3"></div></div>
   </div>
 
   <div x-show="!loading" x-cloak>
-    <!-- PRIMARY KPIs -->
-    <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 mb-3">
-      <div class="panel p-4"><div class="lbl">Payments monitored</div><div class="kpi" x-text="n(metrics.total_transactions)"></div>
-        <div class="text-[11px] text-slate-500 mt-1" x-text="n(metrics.analyzed)+' risk-scored'"></div></div>
-      <div class="panel p-4"><div class="lbl">Suspicious</div><div class="kpi band-MEDIUM" x-text="n(metrics.suspicious)"></div>
-        <div class="text-[11px] text-slate-500 mt-1">flagged for a closer look</div></div>
-      <div class="panel p-4"><div class="lbl">Open cases</div><div class="kpi" x-text="n(metrics.open_cases)"></div>
-        <div class="text-[11px] text-slate-500 mt-1" x-text="n(metrics.high_risk_cases)+' high · '+n(metrics.critical_cases)+' critical'"></div></div>
-      <div class="panel p-4 bd-CRITICAL" style="border-width:1px"><div class="lbl">Critical cases</div>
-        <div class="kpi band-CRITICAL" x-text="n(metrics.critical_cases)"></div>
-        <div class="text-[11px] text-slate-500 mt-1">need action now</div></div>
-      <div class="panel p-4"><div class="lbl">Waiting for an analyst</div><div class="kpi band-HIGH" x-text="n(metrics.review_required)"></div>
-        <div class="text-[11px] text-slate-500 mt-1">a human must decide</div></div>
-      <div class="panel p-4"><div class="lbl">Avg investigation time</div>
-        <div class="kpi" x-text="metrics.avg_investigation_time_s!=null ? metrics.avg_investigation_time_s+'s' : '—'"></div>
-        <div class="text-[11px] text-slate-500 mt-1">Vigil runtime per case</div></div>
-    </div>
-
-    <!-- impact strip -->
-    <div class="panel p-3 mb-5 flex flex-wrap items-center gap-x-8 gap-y-2 text-xs">
-      <div><span class="lbl">Detection rate</span>
-        <span class="ml-2 font-semibold band-LOW" x-text="metrics.detection_rate!=null ? Math.round(metrics.detection_rate*100)+'%' : '—'"></span>
-        <span class="text-slate-500">of known-fraud payments caught at HIGH or CRITICAL</span></div>
-      <div><span class="lbl">Median time to decision</span>
-        <span class="ml-2 font-semibold" x-text="metrics.median_time_to_decision_s!=null ? metrics.median_time_to_decision_s+'s' : '—'"></span>
-        <span class="text-slate-500">vs. 15–20 min manual triage (industry benchmark)</span></div>
-      <div class="ml-auto flex items-center gap-3">
-        <span class="lbl">Risk mix</span>
-        <div class="bar w-56 flex" style="gap:1px">
-          <template x-for="b in ['LOW','MEDIUM','HIGH','CRITICAL']" :key="b">
-            <span :class="'bg-'+b" :style="`width:${pct(metrics.risk_distribution?.[b]||0, metrics.analyzed||1)}%`"
-                  :title="b+': '+(metrics.risk_distribution?.[b]||0)"></span>
-          </template>
-        </div>
-      </div>
-    </div>
-
     <div class="grid gap-5 cols" style="grid-template-columns:1.35fr 1fr">
-      <!-- CASE QUEUE -->
-      <div class="panel p-0 overflow-hidden">
-        <div class="flex items-center justify-between px-4 py-3 border-b border-line">
-          <div class="text-sm font-semibold">Suspicious cases — click a row to investigate</div>
+
+      <!-- CASE QUEUE — story cards -->
+      <div>
+        <div class="flex items-baseline justify-between mb-2">
+          <div class="text-sm font-semibold">Suspicious cases</div>
           <span class="text-xs text-slate-400" x-text="cases.length+' open · highest risk first'"></span>
         </div>
-        <div class="scroll" style="max-height:520px">
-          <table>
-            <thead><tr><th>Case</th><th>Risk</th><th>What happened</th><th></th></tr></thead>
-            <tbody>
-              <template x-for="c in cases" :key="c.id">
-                <tr role="button" @click="openCase(c.id)">
-                  <td><div class="mono text-xs" x-text="c.id"></div>
-                      <div class="text-[11px] text-slate-500 mono" x-text="c.customer_id"></div></td>
-                  <td><div class="flex items-center gap-2">
-                      <span class="text-lg font-bold" :class="'band-'+c.band" x-text="c.score_at_open"></span>
-                      <span class="chip" :class="'band-'+c.band" :style="`border-color:currentColor`" x-text="c.band"></span></div></td>
-                  <td class="text-xs text-slate-300" style="max-width:320px" x-text="c._headline || queueHeadline(c)"></td>
-                  <td class="text-acc text-xs font-semibold whitespace-nowrap">Open case →</td>
-                </tr>
+        <div class="space-y-3">
+          <template x-for="c in cases" :key="c.id">
+            <div class="panel p-4" :class="'bd-'+c.band" style="border-width:1px">
+              <div class="flex items-center justify-between gap-2">
+                <span class="lbl">Suspicious transaction</span>
+                <span class="chip" x-text="statusLabel(c.status)"></span>
+              </div>
+              <div class="flex items-baseline gap-3 mt-1">
+                <span class="text-xl font-bold" x-text="c.amount_paise!=null ? inr(c.amount_paise) : ('score '+c.score_at_open)"></span>
+                <span class="text-xs text-slate-400"
+                  x-text="[c.method && c.method.toUpperCase(), c.city, c.merchant_name].filter(Boolean).join(' · ')"></span>
+              </div>
+              <div class="flex items-center gap-2 mt-2">
+                <span class="text-lg font-bold" :class="'band-'+c.band" x-text="c.score_at_open"></span>
+                <span class="text-xs text-slate-500">/ 100</span>
+                <span class="chip" :class="'band-'+c.band" style="border-color:currentColor" x-text="c.band"></span>
+              </div>
+              <template x-if="c.why && c.why.length">
+                <div class="mt-2 text-xs text-slate-300">
+                  <div class="lbl mb-1">Why flagged</div>
+                  <template x-for="w in c.why" :key="w"><div class="flex gap-1.5"><span class="band-HIGH">•</span><span x-text="w"></span></div></template>
+                </div>
               </template>
-              <tr x-show="!cases.length"><td colspan="4" class="text-center text-slate-500 py-10">
-                No open cases. Run the <b>Critical</b> or <b>Fraud ring</b> scenario to create one.</td></tr>
-            </tbody>
-          </table>
+              <div class="mt-1 text-xs text-slate-400" x-show="!c.why || !c.why.length" x-text="queueHeadline(c)"></div>
+              <button class="btn btn-primary mt-3" @click="openCase(c.id)">Investigate case →</button>
+            </div>
+          </template>
+          <div x-show="!cases.length" class="panel p-6 text-center text-sm text-slate-500">
+            No open cases yet. Run the <b>Account takeover</b> or <b>Card-testing ring</b> scenario above to create one.
+          </div>
         </div>
       </div>
 
       <!-- RECENT ACTIVITY -->
-      <div class="panel p-0 overflow-hidden">
-        <div class="px-4 py-3 border-b border-line text-sm font-semibold">Recent payments</div>
+      <div class="panel p-0 overflow-hidden self-start">
+        <div class="px-4 py-3 border-b border-line text-sm font-semibold">Recent payments (context)</div>
         <div class="scroll" style="max-height:520px">
           <table>
             <thead><tr><th>Time</th><th>Customer</th><th>Amount</th><th>City</th><th>Score</th></tr></thead>
@@ -258,6 +277,50 @@
               </template>
             </tbody>
           </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- OPERATIONS METRICS — collapsed by default, out of the primary flow -->
+    <div class="panel p-4 mt-5">
+      <button class="w-full text-left flex items-center gap-2" @click="showMetrics=!showMetrics">
+        <span class="sec-h" x-text="(showMetrics?'▾':'▸')+'  Operations metrics'"></span>
+        <span class="text-[11px] text-slate-500 ml-1">aggregate stats over the synthetic population — not needed for the demo</span>
+        <span class="text-xs text-slate-400 ml-auto" x-text="lastSync"></span>
+      </button>
+      <div x-show="showMetrics" x-cloak class="mt-3">
+        <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+          <div class="panel p-4" style="background:#0d1521"><div class="lbl">Payments monitored</div><div class="kpi" x-text="n(metrics.total_transactions)"></div>
+            <div class="text-[11px] text-slate-500 mt-1" x-text="n(metrics.analyzed)+' risk-scored'"></div></div>
+          <div class="panel p-4" style="background:#0d1521"><div class="lbl">Suspicious</div><div class="kpi band-MEDIUM" x-text="n(metrics.suspicious)"></div>
+            <div class="text-[11px] text-slate-500 mt-1">flagged for a closer look</div></div>
+          <div class="panel p-4" style="background:#0d1521"><div class="lbl">Open cases</div><div class="kpi" x-text="n(metrics.open_cases)"></div>
+            <div class="text-[11px] text-slate-500 mt-1" x-text="n(metrics.high_risk_cases)+' high · '+n(metrics.critical_cases)+' critical'"></div></div>
+          <div class="panel p-4" style="background:#0d1521"><div class="lbl">Critical cases</div>
+            <div class="kpi band-CRITICAL" x-text="n(metrics.critical_cases)"></div>
+            <div class="text-[11px] text-slate-500 mt-1">need action now</div></div>
+          <div class="panel p-4" style="background:#0d1521"><div class="lbl">Waiting for an analyst</div><div class="kpi band-HIGH" x-text="n(metrics.review_required)"></div>
+            <div class="text-[11px] text-slate-500 mt-1">a human must decide</div></div>
+          <div class="panel p-4" style="background:#0d1521"><div class="lbl">Avg investigation time</div>
+            <div class="kpi" x-text="metrics.avg_investigation_time_s!=null ? metrics.avg_investigation_time_s+'s' : '—'"></div>
+            <div class="text-[11px] text-slate-500 mt-1">Vigil runtime per case</div></div>
+        </div>
+        <div class="mt-3 flex flex-wrap items-center gap-x-8 gap-y-2 text-xs">
+          <div><span class="lbl">Detection rate</span>
+            <span class="ml-2 font-semibold band-LOW" x-text="metrics.detection_rate!=null ? Math.round(metrics.detection_rate*100)+'%' : '—'"></span>
+            <span class="text-slate-500">of known-fraud payments caught at HIGH or CRITICAL</span></div>
+          <div><span class="lbl">Median time to decision</span>
+            <span class="ml-2 font-semibold" x-text="metrics.median_time_to_decision_s!=null ? metrics.median_time_to_decision_s+'s' : '—'"></span>
+            <span class="text-slate-500">vs. 15–20 min manual triage (industry benchmark)</span></div>
+          <div class="ml-auto flex items-center gap-3">
+            <span class="lbl">Risk mix</span>
+            <div class="bar w-56 flex" style="gap:1px">
+              <template x-for="b in ['LOW','MEDIUM','HIGH','CRITICAL']" :key="b">
+                <span :class="'bg-'+b" :style="`width:${pct(metrics.risk_distribution?.[b]||0, metrics.analyzed||1)}%`"
+                      :title="b+': '+(metrics.risk_distribution?.[b]||0)"></span>
+              </template>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -287,6 +350,12 @@
           <span x-text="s"></span>
         </div>
       </template>
+    </div>
+    <div class="nextstep" x-show="!decided">
+      <b>Next step:</b> <span x-text="stepHints[Math.min(currentStep,4)-1]"></span>
+    </div>
+    <div class="nextstep" x-show="decided" style="border-color:#1c4634;background:#0e2019;color:#9ee6c0">
+      <b style="color:#35c48b">Done:</b> the case is resolved and recorded in the audit trail. Use <b style="color:#35c48b">Reset demo</b> to run another.
     </div>
 
     <!-- 1 · CASE + WHAT HAPPENED -->
@@ -325,24 +394,22 @@
 
     <!-- 2 · WHY SUSPICIOUS -->
     <div class="panel p-5">
-      <div class="flex items-center gap-2 mb-3">
+      <div class="flex items-center gap-2 mb-1">
         <span class="sec-n">2</span><span class="sec-h">Why is this suspicious?</span>
-        <span class="text-xs text-slate-500 ml-1">click any warning to see it explained in plain English</span>
       </div>
+      <div class="text-xs text-slate-500 mb-3" x-text="whyRows.length+' risk signal'+(whyRows.length===1?'':'s')+' — each is explained below; click one for the numbers behind it'"></div>
       <div class="space-y-2">
         <template x-for="r in whyRows" :key="r.key">
           <div class="why-row" @click="expandedWhy[r.key]=!expandedWhy[r.key]">
             <div class="flex items-center justify-between gap-3">
               <span class="text-sm font-medium band-HIGH">⚠ <span class="text-ink" x-text="r.name"></span></span>
-              <span class="text-xs text-slate-400 text-right" x-text="r.value"></span>
+              <span class="text-xs text-slate-400 text-right shrink-0" x-text="r.value"></span>
             </div>
-            <div x-show="expandedWhy[r.key]" x-cloak class="mt-2 text-xs text-slate-300">
-              <div x-text="r.why"></div>
-              <div class="mt-1 text-[11px] text-slate-500" x-show="r.baseline">
-                Now: <b class="text-slate-300" x-text="r.value"></b> ·
-                Normal: <span x-text="r.baseline"></span> ·
-                Deviation: <span class="band-HIGH" x-text="r.deviation"></span>
-              </div>
+            <div class="text-xs text-slate-300 mt-1" x-text="r.why"></div>
+            <div x-show="expandedWhy[r.key] && r.baseline" x-cloak class="mt-1 text-[11px] text-slate-500">
+              Now: <b class="text-slate-300" x-text="r.value"></b> ·
+              Normal: <span x-text="r.baseline"></span> ·
+              Deviation: <span class="band-HIGH" x-text="r.deviation"></span>
             </div>
           </div>
         </template>
@@ -352,8 +419,12 @@
 
     <!-- 3 · RISK LEVEL + HOW REACHED + RECOMMENDATION -->
     <div class="panel p-5">
-      <div class="flex items-center gap-2 mb-3">
+      <div class="flex items-center gap-2 mb-1">
         <span class="sec-n">3</span><span class="sec-h">Risk level &amp; what Vigil recommends</span>
+      </div>
+      <div class="text-[11px] text-slate-500 mb-3">
+        <b class="text-slate-300">Risk engine</b> — a fixed formula turns the risk signals into a score,
+        a level, and a recommended action. No AI is involved in this number.
       </div>
 
       <div class="flex flex-wrap items-center gap-6">
@@ -484,11 +555,11 @@
 
       <!-- optional AI investigation -->
       <div class="rounded-lg border border-line p-3 mb-4" style="background:#0d1521" x-show="lastRun || !decided">
+        <div class="lbl mb-2">AI investigation <span class="text-slate-500 normal-case tracking-normal">— optional second opinion</span></div>
         <div class="flex items-center justify-between gap-3">
           <div class="text-xs text-slate-300">
-            <b class="text-ink">Optional second opinion.</b> The AI investigation reads this case with read-only tools,
-            writes an evidence-cited summary, and re-checks every number against the database. It does not change the
-            score and cannot take an action.
+            The AI reads this case with read-only tools, writes an evidence-cited summary, and re-checks every
+            number against the database. It <b>does not</b> change the score and <b>cannot</b> take an action.
           </div>
           <button class="btn btn-primary flex-none" @click="investigate()" :disabled="investigating || !!lastRun || decided">
             <template x-if="investigating"><span class="flex items-center gap-2"><span class="spin"></span> Investigating…</span></template>
@@ -497,6 +568,10 @@
         </div>
         <div x-show="investigating" class="text-[11px] text-slate-500 mono mt-2">
           ▸ reading risk assessment · transaction history · auth events · device &amp; IP graph
+        </div>
+        <div x-show="lastRun && lastRun.mode!=='llm'" x-cloak class="mt-2 text-[11px] band-MEDIUM">
+          AI model unavailable — Vigil continued with its deterministic risk engine. Scoring and the
+          workflow are unaffected. (Details under “Developer / system details”.)
         </div>
         <div x-show="lastRun" x-cloak class="mt-2 text-xs">
           <span class="chip mr-1" :class="lastRun && lastRun.concurs_with_engine ? 'band-LOW' : 'band-HIGH'" style="border-color:currentColor"
@@ -775,14 +850,12 @@
           <div class="why-row" @click="expandedWhy[r.key]=!expandedWhy[r.key]">
             <div class="flex items-center justify-between gap-3">
               <span class="text-sm font-medium band-HIGH">⚠ <span class="text-ink" x-text="r.name"></span></span>
-              <span class="text-xs text-slate-400 text-right" x-text="r.value"></span>
+              <span class="text-xs text-slate-400 text-right shrink-0" x-text="r.value"></span>
             </div>
-            <div x-show="expandedWhy[r.key]" x-cloak class="mt-2 text-xs text-slate-300">
-              <div x-text="r.why"></div>
-              <div class="mt-1 text-[11px] text-slate-500" x-show="r.baseline">
-                Now: <b class="text-slate-300" x-text="r.value"></b> · Normal: <span x-text="r.baseline"></span> ·
-                Deviation: <span class="band-HIGH" x-text="r.deviation"></span>
-              </div>
+            <div class="text-xs text-slate-300 mt-1" x-text="r.why"></div>
+            <div x-show="expandedWhy[r.key] && r.baseline" x-cloak class="mt-1 text-[11px] text-slate-500">
+              Now: <b class="text-slate-300" x-text="r.value"></b> · Normal: <span x-text="r.baseline"></span> ·
+              Deviation: <span class="band-HIGH" x-text="r.deviation"></span>
             </div>
           </div>
         </template>
@@ -949,7 +1022,7 @@ function vigil() {
     detail:null, txnResult:null, investigating:false,
     scenario:'account_takeover',
     pendingAction:null, overrideReason:'', showEvidence:false,
-    techOpen:false, showGuide:false, toast:'', justSimulated:false,
+    techOpen:false, showGuide:false, showReset:false, showMetrics:false, toast:'', justSimulated:false,
     pipeSel:null, expandedWhy:{},
     scenarioList:[
       {key:'normal', menu:'Normal payment', title:'Normal payment', band:'LOW',
@@ -969,7 +1042,12 @@ function vigil() {
       'It recommends an action — allow, verify, hold, or block.',
       'You, the analyst, make the final decision. Vigil never moves money on its own.',
     ],
-    stepLabels:['Review the transaction','Check the risk signals','Review Vigil’s recommendation','Take action'],
+    howFlow:['Transaction','Risk signals','Risk score','Explanation','Recommendation','Human decision'],
+    stepLabels:['Transaction','Risk analysis','Investigation','Decision'],
+    stepHints:['Review the amount, method, location and device.',
+               'See which checks fired and why.',
+               'Read the score, the reason, and (optionally) run the AI investigation.',
+               'Pick an action and confirm — you make the final call.'],
     pipeStages: PIPE_STAGES,
 
     async init(){
@@ -979,6 +1057,7 @@ function vigil() {
       try{ this.showGuide = localStorage.getItem('vigil_guide_seen')!=='1'; }catch(e){ this.showGuide=true; }
       if(q.get('guide')==='0') this.showGuide=false;
       if(q.get('guide')==='1') this.showGuide=true;
+      if(q.get('modal')==='reset'){ this.showGuide=false; this.showReset=true; }
       this.$watch('techOpen', v=>{ try{ localStorage.setItem('vigil_tech', v?'1':'0'); }catch(e){} });
       await this.refreshHealth();
       await this.loadDashboard();
@@ -1046,9 +1125,11 @@ function vigil() {
         }
       }catch(e){} finally{ this.busy=false; }
     },
+    confirmReset(){ this.showReset=false; this.reset(); },
     async reset(){
       this.busy=true;
-      try{ await this.api('/api/admin/reset',{method:'POST',body:'{}'}); this.view='dashboard'; this.detail=null;
+      try{ await this.api('/api/admin/reset',{method:'POST',body:'{}'});
+        this.view='dashboard'; this.detail=null; this.txnResult=null; this.justSimulated=false;
         this.ping('Demo reset to its starting state.'); await this.loadDashboard(true); }
       catch(e){} finally{ this.busy=false; }
     },
@@ -1123,11 +1204,16 @@ function vigil() {
     isBlockish(a){ return a==='BLOCK' || a==='HOLD_FOR_REVIEW'; },
     actionConsequence(a){ return ACTION_CONSEQUENCE[a] || ''; },
 
+    get currentStep(){
+      if(this.decided) return 5;          // all done
+      if(this.pendingAction) return 4;    // Decision
+      if(this.lastRun) return 4;          // investigation ran → ready to decide
+      return 3;                           // Investigation (optional) is the live step
+    },
     stepState(i){
-      if(this.decided) return 'done';
-      const active = this.pendingAction ? 4 : 3;
-      if(i < active) return 'done';
-      if(i === active) return 'current';
+      const cur=this.currentStep;
+      if(i < cur) return 'done';
+      if(i === cur) return 'current';
       return 'todo';
     },
 

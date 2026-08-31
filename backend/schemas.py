@@ -178,6 +178,13 @@ class CaseSummary(ORMModel):
     assigned_to: str
     opened_at: datetime
     closed_at: datetime | None
+    # display-only enrichment for the dashboard queue cards (filled by list_cases;
+    # null on the single-case endpoint). No business logic depends on these.
+    amount_paise: int | None = None
+    city: str | None = None
+    method: str | None = None
+    merchant_name: str | None = None
+    why: list[str] = []
 
 
 class CustomerOut(ORMModel):

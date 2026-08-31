@@ -25,6 +25,32 @@ router = APIRouter(prefix="/api/cases", tags=["cases"])
 
 _PRIORITY_ORDER = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
 
+# Plain-English labels for the dashboard queue cards. Display only.
+_SIGNAL_LABEL = {
+    "AMT_DEV": "Unusual transaction amount", "VEL_1H": "Many payments in a short time",
+    "AUTH_FAIL": "Multiple failed attempts", "DEV_NEW": "New device",
+    "GEO_DIST": "Unusual location", "TIME_ODD": "Unusual time of day",
+}
+_RULE_LABEL = {
+    "R_IMPOSSIBLE_TRAVEL": "Impossible travel",
+    "R_MULTI_CUSTOMER_DEVICE": "Device shared with other customers",
+    "R_AUTH_STORM": "Burst of failed logins",
+}
+
+
+def _why_flagged(assessment) -> list[str]:
+    if not assessment:
+        return []
+    out: list[str] = []
+    for s in sorted(assessment.signals, key=lambda x: x.contribution_pct, reverse=True):
+        if s.triggered and s.code in _SIGNAL_LABEL:
+            out.append(_SIGNAL_LABEL[s.code])
+    for r in (assessment.rules_fired or []):
+        lbl = _RULE_LABEL.get(r["code"])
+        if lbl and lbl not in out:
+            out.append(lbl)
+    return out[:5]
+
 
 class OpenCaseBody(BaseModel):
     transaction_id: str
@@ -42,7 +68,18 @@ def list_cases(db: Session = Depends(get_db), status: str | None = Query(None),
         db.scalars(stmt),
         key=lambda c: (_PRIORITY_ORDER.get(c.priority, 9), -c.opened_at.timestamp()),
     )
-    return [CaseSummary.model_validate(c) for c in cases]
+    out: list[CaseSummary] = []
+    for c in cases:
+        s = CaseSummary.model_validate(c)
+        txn = db.get(Transaction, c.transaction_id)
+        if txn:
+            s.amount_paise = txn.amount_paise
+            s.city = txn.city
+            s.method = txn.method
+            s.merchant_name = txn.merchant_name
+            s.why = _why_flagged(txn.assessment)
+        out.append(s)
+    return out
 
 
 @router.post("", response_model=CaseSummary)
