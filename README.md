@@ -37,7 +37,6 @@ pip install -r requirements.txt
 uvicorn backend.main:app --port 8000    # auto-seeds the synthetic DB on first start
 ```
 
-Open <http://localhost:8000>.
 
 ### The AI investigation layer (optional)
 
