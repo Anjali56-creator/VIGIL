@@ -1,24 +1,15 @@
 """Deterministic engine-only investigation.
 
-Used when no ANTHROPIC_API_KEY is configured or the LLM call fails. Produces the
-same Investigation shape from the engine's own signals so the persistence,
-validation and UI paths are identical - just clearly badged "engine-only".
+Used when no LLM provider is configured, or the live model errors / times out.
+Produces the same `Investigation` shape from the engine's own signals and the
+pre-gathered read-only evidence, so the persistence, grounding-validation and UI
+paths are identical - just clearly badged mode="fallback" / model="engine-only".
 """
 from __future__ import annotations
 
-from sqlalchemy import select
-from sqlalchemy.orm import Session
-
 from ..models import Customer, RiskAssessment, Transaction
-from ..util import rupees
 from .schema import Finding, Investigation
-from .tools import (
-    ToolContext,
-    find_related_events,
-    get_auth_events,
-    get_risk_assessment,
-    get_transaction_history,
-)
+from .tools import ToolResult
 
 _METRIC_FOR = {
     "AMT_DEV": ("amount_paise", "paise"),
@@ -29,19 +20,23 @@ _METRIC_FOR = {
 }
 
 
-def build(db: Session, txn: Transaction, customer: Customer) -> tuple[Investigation, list]:
-    a = db.scalar(select(RiskAssessment).where(RiskAssessment.transaction_id == txn.id))
-    ctx = ToolContext(db=db, txn=txn, customer=customer)
-
-    # Gather the same evidence a live agent would, deterministically.
-    ra = get_risk_assessment(ctx)
-    hist = get_transaction_history(ctx)
-    auth = get_auth_events(ctx)
-    ring = find_related_events(ctx)
-    evidence = [*ra.evidence, *hist.evidence, *auth.evidence, *ring.evidence]
+def build_from(
+    assessment: RiskAssessment,
+    txn: Transaction,
+    customer: Customer,
+    tool_results: dict[str, ToolResult],
+) -> tuple[Investigation, list]:
+    """Build a deterministic Investigation from an already-scored assessment and
+    the evidence already collected by the 5 read-only tools. No DB access, no LLM."""
+    a = assessment
+    ring = tool_results["find_related_events"]
+    evidence = [ev for res in tool_results.values() for ev in res.evidence]
 
     findings: list[Finding] = []
-    triggered = sorted([s for s in a.signals if s.triggered], key=lambda s: s.contribution_pct, reverse=True)
+    triggered = sorted(
+        (s for s in a.signals if s.triggered),
+        key=lambda s: s.contribution_pct, reverse=True,
+    )
     for s in triggered:
         metric, unit = _METRIC_FOR.get(s.code, (None, ""))
         findings.append(Finding(
@@ -70,12 +65,13 @@ def build(db: Session, txn: Transaction, customer: Customer) -> tuple[Investigat
 
     band = a.band
     summary = (
-        f"Engine-only assessment. Transaction {rupees(txn.amount_paise)} in {txn.city} scored "
+        f"Engine-only assessment. Transaction {txn.amount_paise} paise in {txn.city} scored "
         f"{a.score}/100 ({band}). {len(triggered)} signals triggered"
         + (f"; rules fired: {', '.join(r['code'] for r in a.rules_fired)}." if a.rules_fired else ".")
     )
-    dev = (f"Customer median is {rupees(customer.amount_median_paise)} over {customer.txn_count} "
-           f"transactions; this transaction is {txn.amount_paise / max(customer.amount_median_paise, 1):.1f}x that.")
+    dev = (f"Customer median is {customer.amount_median_paise} paise over {customer.txn_count} "
+           f"transactions; this transaction is "
+           f"{txn.amount_paise / max(customer.amount_median_paise, 1):.1f}x that.")
 
     # -------- deterministic fallback escalation (seeded dissent) --------
     # The engine scores one transaction at a time. When the evidence shows the

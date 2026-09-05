@@ -18,6 +18,12 @@ def _sqlite_pragmas(dbapi_conn, _rec):  # pragma: no cover - driver hook
         cur = dbapi_conn.cursor()
         cur.execute("PRAGMA journal_mode=WAL")
         cur.execute("PRAGMA foreign_keys=ON")
+        # WAL lets readers run during a write, but there is still only one writer.
+        # busy_timeout makes a briefly-contended writer wait-and-retry instead of
+        # failing immediately with "database is locked". The investigation flow is
+        # also written so it never holds a write transaction open across an LLM
+        # call, so this timeout should rarely be hit.
+        cur.execute("PRAGMA busy_timeout=5000")
         cur.close()
 
 

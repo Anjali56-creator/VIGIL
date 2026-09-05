@@ -234,6 +234,81 @@ def _account_takeover(db: Session, victim: Customer, *, when=None, historical: b
     return txn
 
 
+# --- LIVE card-testing ring: fully pinned so the judge demo is reproducible -----
+# Always the same focus customer, the same 3 ring peers, the same shared device and
+# the same small home-city amounts. The only rule that fires is the deterministic
+# multi-customer-device floor (75 -> HIGH); the statistical base stays in MEDIUM.
+# Nothing here can trigger impossible travel (every leg is in the customer's own
+# home city) or an amount anomaly (every leg is a card-testing micro-charge far
+# below the customer's p95). The ring is built once per demo session and reused:
+# re-running the scenario returns the same case instead of stacking extra
+# velocity / device evidence that would drift the score into CRITICAL. "Reset
+# demo" wipes everything, and the next run rebuilds the ring from scratch.
+_CT_FOCUS = "CUST-1006"                       # Hyderabad, active 09-22, no same-day history
+_CT_RING_PEERS = ("CUST-1003", "CUST-1007", "CUST-1009")
+_CT_DEVICE = "DEV-8000"
+_CT_IP = "196.10.20.30"
+_CT_HOUR = 14                                 # calm business hour -> no time-of-day signal
+_CT_FOCUS_TXN_ID = "txn_ct_focus_live"
+# (minutes-before-focus, amount in paise) for the 8 small authorisations.
+_CT_LEGS = ((58, 8200), (52, 9100), (46, 7600), (40, 10400),
+            (34, 8800), (28, 9600), (22, 7400), (16, 11200))
+_CT_FOCUS_PAISE = 9300
+
+
+def _card_testing_live(db: Session, primary: Customer) -> Transaction:
+    """Deterministic card-testing ring for the live judge demo.
+
+    Reproducible outcome, every run: score 75, band HIGH, recommendation
+    HOLD_FOR_REVIEW - driven purely by the R_MULTI_CUSTOMER_DEVICE rule floor.
+
+    Idempotent: if the ring already exists this session, return its focus
+    transaction unchanged (no deletes, so it is safe to call while an
+    investigation on the same case is in flight)."""
+    existing = db.get(Transaction, _CT_FOCUS_TXN_ID)
+    if existing is not None:
+        if existing.assessment is None:
+            assess(db, existing)
+        return existing
+
+    t = now_ist().replace(hour=_CT_HOUR, minute=30, second=0, microsecond=0)
+
+    peers = [p for p in (db.get(Customer, cid) for cid in _CT_RING_PEERS)
+             if p and p.id != primary.id]
+    pool = [primary, *peers]
+
+    for i, (mins, paise) in enumerate(_CT_LEGS):
+        cust = pool[i % len(pool)]
+        clat, clng = _jitter(cust.home_lat, cust.home_lng, random.Random(i), 4)
+        small = Transaction(
+            id=f"txn_ct_{cust.id.lower()}_live{i}",
+            customer_id=cust.id, amount_paise=paise,
+            method="card", merchant_name="Online Wallet Top-up", merchant_mcc="6540",
+            device_id=_CT_DEVICE, ip_addr=_CT_IP, city=cust.home_city, lat=clat, lng=clng,
+            created_at=t - timedelta(minutes=mins), status="captured",
+            is_attack=True, scenario_label="card_testing",
+        )
+        db.add(small)
+        db.flush()
+        assess(db, small)
+
+    db.add(AuthEvent(customer_id=primary.id, device_id=_CT_DEVICE, ip_addr=_CT_IP,
+                     type="PAYMENT_DECLINE", success=False, created_at=t - timedelta(minutes=6)))
+
+    clat, clng = _jitter(primary.home_lat, primary.home_lng, random.Random(99), 4)
+    txn = Transaction(
+        id=_CT_FOCUS_TXN_ID,
+        customer_id=primary.id, amount_paise=_CT_FOCUS_PAISE,
+        method="card", merchant_name="Online Wallet Top-up", merchant_mcc="6540",
+        device_id=_CT_DEVICE, ip_addr=_CT_IP, city=primary.home_city, lat=clat, lng=clng,
+        created_at=t, status="captured", is_attack=True, scenario_label="card_testing",
+    )
+    db.add(txn)
+    db.flush()
+    assess(db, txn)
+    return txn
+
+
 def _card_testing(db: Session, primary: Customer, *, when=None, historical: bool = False,
                   rng: random.Random, ring_size: int = 4) -> Transaction:
     """Card-testing ring: one device runs many small authorisations across several
@@ -243,7 +318,14 @@ def _card_testing(db: Session, primary: Customer, *, when=None, historical: bool
     the anomaly score lands in MEDIUM. It is the deterministic multi-customer-device
     rule that raises the score to HIGH - a visible, explainable rule floor. The
     focus transaction is the latest one, on `primary`.
+
+    The live path (historical=False, used by the demo's "Run scenario") is fully
+    pinned and idempotent - see `_card_testing_live`. The historical path below
+    (used once by `seed()`, deterministic via SEED=42) seeds the dissent-demo case.
     """
+    if not historical:
+        return _card_testing_live(db, primary)
+
     # Pin the ring to a calm business hour so the focus transaction carries no
     # incidental time-of-day signal. The whole point of this scenario is that the
     # deterministic multi-customer-device RULE (not the anomaly score) is what
@@ -325,8 +407,8 @@ def _suspicious(db: Session, customer: Customer, *, when=None, historical: bool 
                 rng: random.Random) -> Transaction:
     """One genuinely odd transaction, but no smoking gun: a NEW device plus a moderately
     high amount (kept below p95 so the amount alone does not dominate). No auth failures,
-    no shared device, no travel, no hard rule. Lands MEDIUM/HIGH -> MONITOR / STEP_UP,
-    with no case opened. Not tagged as an attack - it is 'unusual', not 'known fraud'."""
+    no shared device, no travel, no hard rule. Lands MEDIUM/HIGH -> HOLD_FOR_REVIEW,
+    usually with no case opened. Not tagged as an attack - it is 'unusual', not 'known fraud'."""
     t = when or now_ist()
     mid = (customer.active_hour_start + customer.active_hour_end) // 2
     t = t.replace(hour=max(0, min(23, mid)), minute=rng.randint(0, 59), second=0, microsecond=0)

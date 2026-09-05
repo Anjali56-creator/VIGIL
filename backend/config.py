@@ -13,9 +13,12 @@ class Settings(BaseSettings):
     # engine-only fallback. No key configured -> fallback. This is the ONLY place
     # provider selection is decided.
     gemini_api_key: str | None = None
-    # Current free-tier model with tool-calling support. Override with GEMINI_MODEL;
-    # "gemini-flash-latest" tracks the newest flash model if you prefer not to pin.
-    gemini_model: str = "gemini-3.6-flash"
+    # The "flash-lite" tier is what makes a live investigation demo-fast: a single
+    # structured call returns in ~3-6s on the free tier, versus 10-50s for the
+    # full "flash" tier. Override with GEMINI_MODEL. The investigation is a single
+    # non-agentic call (evidence is pre-gathered), so no tool-calling support is
+    # required from the model.
+    gemini_model: str = "gemini-flash-lite-latest"
 
     anthropic_api_key: str | None = None
     vigil_model: str = "claude-opus-5"
