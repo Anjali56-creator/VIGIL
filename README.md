@@ -9,8 +9,6 @@ Razorpay AI Buildathon · **Track 2: AI Risk Manager**
 **🔗 Live demo: <https://vigil-pjuf.onrender.com>** — hosted on Render's free tier, so the
 first request after it sleeps can take ~30–50s to wake. Then **How Vigil works → Run scenario**.
 
-Live Demo video: " https://drive.google.com/file/d/1LtyJzilKlvtGaTvmNSnIT857QVf6IY9h/view?usp=sharing "
-
 **Most systems give you a fraud _score_. Vigil gives you the _investigation_ behind it** —
 the evidence, the reasoning, the recommended action — and leaves the final decision with a
 human analyst.
